@@ -5,11 +5,11 @@ import { prisma } from '@/lib/prisma'
 import { Provider } from '@prisma/client'
 
 /**
- * Fetch saved Teams messages for the user
+ * Fetch recent Teams messages for the user (channels + chats).
  * GET /api/teams/saved-messages
- * 
- * Only fetches messages that the user has explicitly saved/bookmarked in Teams
- * This respects user privacy by not reading all their chat history
+ *
+ * Reads recent channel messages from joined teams and recent 1:1/group chats.
+ * Does not require messages to be manually saved in Teams.
  */
 export async function GET(request: NextRequest) {
   try {
@@ -103,6 +103,13 @@ export async function GET(request: NextRequest) {
 
     console.log('📱 [Teams] Fetching recent messages...')
 
+    const integrationData = (integration.data as Record<string, any>) || {};
+    const teamsSync = integrationData.teamsSync || { channels: {}, chats: {} };
+    const newTeamsSync = {
+      channels: { ...teamsSync.channels },
+      chats: { ...teamsSync.chats }
+    };
+
     const messages: any[] = []
 
     // Step 1: Get user's joined Teams
@@ -137,7 +144,7 @@ export async function GET(request: NextRequest) {
     
     console.log(`✅ [Teams] Found ${teams.length} joined teams`)
 
-    // Step 2: For each team, get channels and fetch all messages (no date filter)
+    // Step 2: For each team, get channels and fetch all messages
     for (const team of teams) {
       try {
         // Get channels in this team
@@ -173,8 +180,22 @@ export async function GET(request: NextRequest) {
                 const messagesData = await messagesResponse.json()
                 const channelMessages = messagesData.value || []
                 
+                if (channelMessages.length > 0) {
+                  newTeamsSync.channels[channel.id] = channelMessages[0].id
+                }
+
+                // Filter messages that have already been synced
+                const lastSyncedId = teamsSync.channels[channel.id]
+                let filteredMessages = channelMessages
+                if (lastSyncedId) {
+                  const stopIndex = channelMessages.findIndex((msg: any) => msg.id === lastSyncedId)
+                  if (stopIndex !== -1) {
+                    filteredMessages = channelMessages.slice(0, stopIndex)
+                  }
+                }
+                
                 // Add context to each message
-                channelMessages.forEach((msg: any) => {
+                filteredMessages.forEach((msg: any) => {
                   msg.teamId = team.id
                   msg.teamName = team.displayName
                   msg.channelId = channel.id
@@ -182,10 +203,10 @@ export async function GET(request: NextRequest) {
                   msg.isChannel = true
                 })
                 
-                messages.push(...channelMessages)
+                messages.push(...filteredMessages)
                 
-                if (channelMessages.length > 0) {
-                  console.log(`    ✅ [Channel: ${channel.displayName}] Found ${channelMessages.length} messages`)
+                if (filteredMessages.length > 0) {
+                  console.log(`    ✅ [Channel: ${channel.displayName}] Fetched ${filteredMessages.length} new message(s)`)
                 }
               }
             } catch (error) {
@@ -230,17 +251,31 @@ export async function GET(request: NextRequest) {
             const messagesData = await messagesResponse.json()
             const chatMessages = messagesData.value || []
             
+            if (chatMessages.length > 0) {
+              newTeamsSync.chats[chat.id] = chatMessages[0].id
+            }
+
+            // Filter messages that have already been synced
+            const lastSyncedId = teamsSync.chats[chat.id]
+            let filteredMessages = chatMessages
+            if (lastSyncedId) {
+              const stopIndex = chatMessages.findIndex((msg: any) => msg.id === lastSyncedId)
+              if (stopIndex !== -1) {
+                filteredMessages = chatMessages.slice(0, stopIndex)
+              }
+            }
+            
             // Add context to all chat messages
-            chatMessages.forEach((msg: any) => {
+            filteredMessages.forEach((msg: any) => {
               msg.chatId = chat.id
               msg.chatTopic = chat.topic || 'Chat'
               msg.isChannel = false
             })
             
-            messages.push(...chatMessages)
+            messages.push(...filteredMessages)
             
-            if (chatMessages.length > 0) {
-              console.log(`  💬 [Chat: ${chat.topic || 'Unnamed'}] Found ${chatMessages.length} messages`)
+            if (filteredMessages.length > 0) {
+              console.log(`  💬 [Chat: ${chat.topic || 'Unnamed'}] Fetched ${filteredMessages.length} new message(s)`)
             }
           }
         } catch (error) {
@@ -248,6 +283,17 @@ export async function GET(request: NextRequest) {
         }
       }
     }
+
+    // Persist new sync state back to integration database record
+    await prisma.integration.update({
+      where: { id: integration.id },
+      data: {
+        data: {
+          ...integrationData,
+          teamsSync: newTeamsSync,
+        },
+      },
+    })
 
     console.log(`✅ [Teams] Total raw messages fetched: ${messages.length}`)
 

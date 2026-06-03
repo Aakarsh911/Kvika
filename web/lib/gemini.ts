@@ -1,4 +1,4 @@
-import { generateText } from '@/lib/ai'
+import { generateText, getAIProvider } from '@/lib/ai'
 
 export interface ExtractedTask {
   title: string
@@ -82,7 +82,11 @@ Examples of NON-actionable items:
 
 Return ONLY the JSON object, no additional text.`
 
-  const response = await generateText(prompt, { temperature: 0.3, maxTokens: 1024 })
+  const response = await generateText(prompt, {
+    temperature: 0.3,
+    maxTokens: 1024,
+    responseMimeType: 'application/json'
+  })
     
     // Parse the JSON response
     const cleanedResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
@@ -148,10 +152,10 @@ export async function extractTasksFromEmailsBatch(
 
   try {
 
-    // Create batch prompt
+    // Create batch prompt using simple, clean temporary IDs
     const emailsText = emails.map((email, index) => `
 EMAIL ${index + 1}:
-ID: ${email.id}
+ID: email_${index + 1}
 From: ${email.from.name} <${email.from.address}>
 Subject: ${email.subject}
 Body: ${email.bodyPreview}
@@ -196,9 +200,9 @@ EXAMPLES OF INVALID (don't extract these):
 ✗ "Sale: 50% off all items!"
 ✗ "Meeting invite: Team standup" (already in calendar)
 
-Return a JSON object mapping email IDs to their extracted tasks:
+Return a JSON object mapping email temporary IDs (e.g., "email_1", "email_2", etc.) to their extracted tasks:
 {
-  "emailId1": {
+  "email_1": {
     "hasActionableItems": true,
     "confidence": 0.95,
     "tasks": [
@@ -211,7 +215,7 @@ Return a JSON object mapping email IDs to their extracted tasks:
       }
     ]
   },
-  "emailId2": {
+  "email_2": {
     "hasActionableItems": false,
     "confidence": 0.1,
     "tasks": []
@@ -225,22 +229,33 @@ Priority Guidelines:
 
 Return ONLY the JSON object. Be conservative - when in doubt, don't extract it.`
 
-  const response = await generateText(prompt, { temperature: 0.2, maxTokens: 4096 })
+  const providerName = getAIProvider() === 'gemini' ? 'Gemini' : 'Bedrock'
+  console.log(`🤖 [${providerName} Batch API] Sending ${emails.length} emails to ${providerName}:`, emails.map(e => ({ id: e.id, subject: e.subject })))
+
+  const response = await generateText(prompt, {
+    temperature: 0.2,
+    maxTokens: 4096,
+    responseMimeType: 'application/json'
+  })
+
+  console.log(`🤖 [${providerName} Batch API] Raw response received:\n${response}`)
     
     // Parse the JSON response
     const cleanedResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     let parsed: any
     try {
       parsed = JSON.parse(cleanedResponse)
+      console.log(`🤖 [${providerName} Batch API] Parsed JSON successfully. Keys extracted:`, Object.keys(parsed))
     } catch (err) {
       console.error('❌ [AI] Failed to parse JSON:', err)
       console.error('❌ [AI] Raw response:', cleanedResponse.slice(0, 2000) + (cleanedResponse.length > 2000 ? '... (truncated)' : ''))
-      return results // Return empty array on parse error
+      throw new Error(`Failed to parse AI response as JSON: ${err instanceof Error ? err.message : String(err)}`)
     }
 
     // Convert to EmailTaskResult array
-    emails.forEach((email) => {
-      const extraction = parsed[email.id]
+    emails.forEach((email, index) => {
+      const tempId = `email_${index + 1}`
+      const extraction = parsed[tempId]
       
       if (extraction && extraction.hasActionableItems && 
           extraction.confidence >= 0.6 && 
@@ -261,7 +276,7 @@ Return ONLY the JSON object. Be conservative - when in doubt, don't extract it.`
     return results
   } catch (error) {
     console.error('Error in batch task extraction:', error)
-    return results // Return empty array on error
+    throw error // Propagate error so database transaction updates can be aborted
   }
 }
 
@@ -363,7 +378,11 @@ Priority Guidelines:
 
 Return ONLY the JSON object. Be conservative - when in doubt, don't extract it.`
 
-  const response = await generateText(prompt, { temperature: 0.2, maxTokens: 4096 })
+  const response = await generateText(prompt, {
+    temperature: 0.2,
+    maxTokens: 4096,
+    responseMimeType: 'application/json'
+  })
     
     // Parse the JSON response
     const cleanedResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()

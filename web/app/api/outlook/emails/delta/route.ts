@@ -97,9 +97,29 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No access token' }, { status: 401 });
     }
 
-    // Get deltaLink from query params (if this is a subsequent sync)
+    // Load stored deltaLink from database if present
+    const integrationData = (integration.data as Record<string, any>) || {};
+    const dbDeltaLink = integrationData.outlookMailDeltaLink;
+
+    // Also support getting it from query params for fallback/flexibility
     const { searchParams } = new URL(request.url);
-    const deltaLink = searchParams.get('deltaLink');
+    let deltaLink = searchParams.get('deltaLink') || dbDeltaLink;
+    const persist = searchParams.get('persist') !== 'false';
+
+    if (deltaLink === 'clear') {
+      deltaLink = null;
+      // Clear it from the database immediately to reset the state
+      await prisma.integration.update({
+        where: { id: integration.id },
+        data: {
+          data: {
+            ...integrationData,
+            outlookMailDeltaLink: null,
+          },
+        },
+      });
+      console.log('🧹 Cleared Outlook mail deltaLink from database due to clear request');
+    }
 
     let url: string;
     
@@ -133,6 +153,21 @@ export async function GET(request: NextRequest) {
 
     const data = await response.json();
 
+    // Persist deltaLink to the database if we got one and persist is true
+    const newDeltaLink = data['@odata.deltaLink'] || null;
+    if (newDeltaLink && persist) {
+      await prisma.integration.update({
+        where: { id: integration.id },
+        data: {
+          data: {
+            ...integrationData,
+            outlookMailDeltaLink: newDeltaLink,
+          },
+        },
+      });
+      console.log('💾 Persisted new Outlook mail deltaLink to database');
+    }
+
     // The response includes:
     // - value: array of changed items
     // - @odata.deltaLink: URL for next delta query (when no more changes)
@@ -140,7 +175,7 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({
       emails: data.value || [],
-      deltaLink: data['@odata.deltaLink'] || null,
+      deltaLink: newDeltaLink,
       nextLink: data['@odata.nextLink'] || null,
     });
 

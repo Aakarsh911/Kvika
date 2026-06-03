@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
+import { Provider } from '@prisma/client'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { extractTasksFromEmailsBatch } from '@/lib/gemini'
 import { deleteCache } from '@/lib/redis'
 import { prisma } from '@/lib/prisma'
 import { requireAIConsent } from '@/lib/ai-consent'
+import { getAIProvider } from '@/lib/ai'
 
 /**
  * Extract actionable tasks from emails using AI (Gemini)
@@ -50,34 +52,88 @@ export async function POST(request: NextRequest) {
     const startTime = Date.now()
     console.log(`🤖 [Task Extraction] Starting for user ${user.id}`)
 
-    // Fetch emails from Gmail
+    const { searchParams } = new URL(request.url);
+    const forceRefresh = searchParams.get('forceRefresh') === 'true';
+
+    // Fetch emails from Gmail using delta sync if historyId exists
     let allEmails: any[] = []
+    let gmailHistoryId: string | null = null
+    let newGmailHistoryId: string | null = null
+    let newOutlookDeltaLink: string | null = null
     
-    try {
-      const gmailRes = await fetch(`${process.env.NEXTAUTH_URL}/api/gmail/emails`, {
-        headers: { Cookie: request.headers.get('cookie') || '' }
-      })
-      
-      if (gmailRes.ok) {
-        const gmailData = await gmailRes.json()
-        const gmailEmails = (gmailData.emails || []).map((e: any) => ({
-          id: e.id,
-          subject: e.subject,
-          bodyPreview: e.bodyPreview || e.snippet || '',
-          from: e.from,
-          provider: 'gmail' as const,
-          webLink: e.htmlLink || e.webLink,
-        }))
-        allEmails.push(...gmailEmails)
-        console.log(`📧 [Gmail] Fetched ${gmailEmails.length} emails`)
-      }
-    } catch (gmailError) {
-      console.error('❌ [Gmail] Error fetching emails:', gmailError)
+    const googleIntegration = await prisma.integration.findFirst({
+      where: { userId: user.id, provider: Provider.GOOGLE }
+    })
+
+    if (googleIntegration && !forceRefresh) {
+      const data = (googleIntegration.data as Record<string, any>) || {}
+      gmailHistoryId = data.gmailHistoryId || null
     }
 
-    // Fetch emails from Outlook
+    let gmailResOk = false
+
+    if (gmailHistoryId) {
+      console.log(`📧 [Gmail] Running incremental history sync (historyId: ${gmailHistoryId})...`)
+      try {
+        const gmailRes = await fetch(`${process.env.NEXTAUTH_URL}/api/gmail/emails/sync?historyId=${gmailHistoryId}`, {
+          headers: { Cookie: request.headers.get('cookie') || '' }
+        })
+        if (gmailRes.ok) {
+          const gmailData = await gmailRes.json()
+          const gmailEmails = (gmailData.emails || []).map((e: any) => ({
+            id: e.id,
+            subject: e.subject,
+            bodyPreview: e.bodyPreview || e.snippet || '',
+            from: e.from,
+            provider: 'gmail' as const,
+            webLink: e.htmlLink || e.webLink,
+          }))
+          allEmails.push(...gmailEmails)
+          newGmailHistoryId = gmailData.historyId || null
+          gmailResOk = true
+          console.log(`📧 [Gmail] Sync complete: fetched ${gmailEmails.length} new email(s)`)
+        } else if (gmailRes.status === 400) {
+          console.warn(`⚠️ [Gmail] historyId ${gmailHistoryId} expired. Falling back to full fetch...`)
+        }
+      } catch (gmailError) {
+        console.error('❌ [Gmail] Error during sync fetch:', gmailError)
+      }
+    }
+
+    if (!gmailResOk) {
+      console.log(`📧 [Gmail] Running initial email fetch (forceRefresh: ${forceRefresh})...`)
+      try {
+        const gmailUrl = forceRefresh
+          ? `${process.env.NEXTAUTH_URL}/api/gmail/emails?forceRefresh=true`
+          : `${process.env.NEXTAUTH_URL}/api/gmail/emails`
+        const gmailRes = await fetch(gmailUrl, {
+          headers: { Cookie: request.headers.get('cookie') || '' }
+        })
+        if (gmailRes.ok) {
+          const gmailData = await gmailRes.json()
+          const gmailEmails = (gmailData.emails || []).map((e: any) => ({
+            id: e.id,
+            subject: e.subject,
+            bodyPreview: e.bodyPreview || e.snippet || '',
+            from: e.from,
+            provider: 'gmail' as const,
+            webLink: e.htmlLink || e.webLink,
+          }))
+          allEmails.push(...gmailEmails)
+          newGmailHistoryId = gmailData.historyId || null
+          console.log(`📧 [Gmail] Initial fetch complete: fetched ${gmailEmails.length} email(s)`)
+        }
+      } catch (gmailError) {
+        console.error('❌ [Gmail] Error during full fetch:', gmailError)
+      }
+    }
+
+    // Fetch emails from Outlook (this endpoint now automatically tracks deltaLink in DB)
     try {
-      const outlookRes = await fetch(`${process.env.NEXTAUTH_URL}/api/outlook/emails/delta`, {
+      const outlookUrl = forceRefresh
+        ? `${process.env.NEXTAUTH_URL}/api/outlook/emails/delta?deltaLink=clear&persist=false`
+        : `${process.env.NEXTAUTH_URL}/api/outlook/emails/delta?persist=false`
+      const outlookRes = await fetch(outlookUrl, {
         headers: { Cookie: request.headers.get('cookie') || '' }
       })
       
@@ -95,6 +151,7 @@ export async function POST(request: NextRequest) {
           webLink: e.webLink,
         }))
         allEmails.push(...outlookEmails)
+        newOutlookDeltaLink = outlookData.deltaLink || null
         console.log(`📧 [Outlook] Fetched ${outlookEmails.length} emails`)
       }
     } catch (outlookError) {
@@ -128,7 +185,11 @@ export async function POST(request: NextRequest) {
     let extractionResults: any[] = [];
 
     for (const batch of emailBatches) {
+      const batchIdx = emailBatches.indexOf(batch) + 1;
+      const providerName = getAIProvider() === 'gemini' ? 'Gemini' : 'Bedrock';
+      console.log(`📥 [Task Extraction] Sending batch of ${batch.length} emails (batch ${batchIdx}/${emailBatches.length}) to ${providerName} batch extractor...`)
       const batchResults = await extractTasksFromEmailsBatch(batch);
+      console.log(`📤 [Task Extraction] Batch results returned ${batchResults.length} email(s) with actionable tasks for batch ${batchIdx}/${emailBatches.length}:`, JSON.stringify(batchResults.map(r => ({ emailId: r.emailId, tasksCount: r.tasks?.length })), null, 2))
       extractionResults = extractionResults.concat(batchResults);
     }
 
@@ -191,6 +252,46 @@ export async function POST(request: NextRequest) {
             error: error instanceof Error ? error.message : 'Unknown error'
           })
         }
+      }
+    }
+
+    // -------------------------------------------------------------
+    // TRANSACTIONAL STEP: Update database with advanced sync states
+    // ONLY executed if Gemini batch extraction completes without throwing
+    // -------------------------------------------------------------
+    
+    // 1. Update Gmail sync state
+    if (googleIntegration && newGmailHistoryId && newGmailHistoryId !== gmailHistoryId) {
+      const data = (googleIntegration.data as Record<string, any>) || {}
+      await prisma.integration.update({
+        where: { id: googleIntegration.id },
+        data: {
+          data: {
+            ...data,
+            gmailHistoryId: newGmailHistoryId
+          }
+        }
+      })
+      console.log(`💾 [Sync State] Persisted new Gmail historyId to database: ${newGmailHistoryId}`)
+    }
+
+    // 2. Update Outlook sync state
+    const microsoftIntegration = await prisma.integration.findFirst({
+      where: { userId: user.id, provider: Provider.MICROSOFT }
+    })
+    if (microsoftIntegration && newOutlookDeltaLink) {
+      const data = (microsoftIntegration.data as Record<string, any>) || {}
+      if (newOutlookDeltaLink !== data.outlookMailDeltaLink) {
+        await prisma.integration.update({
+          where: { id: microsoftIntegration.id },
+          data: {
+            data: {
+              ...data,
+              outlookMailDeltaLink: newOutlookDeltaLink
+            }
+          }
+        })
+        console.log(`💾 [Sync State] Persisted new Outlook deltaLink to database: ${newOutlookDeltaLink}`)
       }
     }
 

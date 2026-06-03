@@ -71,6 +71,7 @@ const sourceConfig: Record<string, { icon: React.ElementType; color: string; nam
   JIRA: { icon: KanbanSquare, color: "bg-blue-500/10 text-blue-600 border-blue-200", name: "Jira" },
   SLACK: { icon: MessageSquare, color: "bg-purple-500/10 text-purple-600 border-purple-200", name: "Slack" },
   TEAMS: { icon: Users, color: "bg-indigo-500/10 text-indigo-600 border-indigo-200", name: "Teams" },
+  teams: { icon: Users, color: "bg-indigo-500/10 text-indigo-600 border-indigo-200", name: "Teams" },
   EMAIL_AI: { icon: Mail, color: "bg-purple-500/10 text-purple-600 border-purple-200", name: "Email (AI)" },
   MANUAL: { icon: ListTodo, color: "bg-gray-500/10 text-gray-600 border-gray-200", name: "Manual" },
 }
@@ -82,7 +83,7 @@ const priorityConfig: Record<string, { color: string; label: string }> = {
 }
 
 export function TaskManagement() {
-  const [filter, setFilter] = useState<string>("all")
+  const [filter, setFilter] = useState<string>("To Do")
   const [searchQuery, setSearchQuery] = useState("")
   const [tasks, setTasks] = useState<UITask[]>([])
   const [loading, setLoading] = useState(true)
@@ -178,37 +179,60 @@ export function TaskManagement() {
 
   const handleExtractFromTeams = () => {
     startTeamsExtractTransition(async () => {
-      toast({ 
-        title: "Teams Extraction Started", 
-        description: "Analyzing saved Teams messages for actionable tasks..." 
+      toast({
+        title: "Teams extraction started",
+        description: "Scanning recent channel and chat messages for work action items…",
       })
-      
+
       try {
-        const res = await fetch("/api/tasks/extract-from-teams", { 
-          method: "POST" 
+        const res = await fetch("/api/tasks/extract-from-teams", {
+          method: "POST",
         })
-        
+
         if (res.ok) {
           const result = await res.json()
+          const stats = result.stats as
+            | {
+                messagesScanned?: number
+                messagesSkipped?: number
+                messagesActionable?: number
+                llmBatches?: number
+              }
+            | undefined
+
+          let description = result.message as string | undefined
+          if (!description && result.created > 0) {
+            description = `Created ${result.created} task(s) from ${stats?.messagesActionable ?? result.messagesProcessed} actionable message(s).`
+            if (stats?.messagesSkipped) {
+              description += ` ${stats.messagesSkipped} empty/too-short message(s) skipped.`
+            }
+            if (result.duplicatesSkipped > 0) {
+              description += ` ${result.duplicatesSkipped} duplicate(s) already in your list.`
+            }
+          } else if (!description) {
+            description = `Scanned ${stats?.messagesScanned ?? result.messagesProcessed ?? 0} message(s); ${stats?.messagesSkipped ?? 0} empty. ${stats?.llmBatches ?? 0} AI batch(es). No new tasks.`
+          }
+
           toast({
-            title: "Teams Extraction Complete",
-            description: `Found ${result.extracted} tasks. Created ${result.created} new tasks.`,
+            title: "Teams extraction complete",
+            description,
           })
           await fetchTasks()
         } else {
           const error = await res.json()
-          
-          // Check if consent is required
-          if (error.code === 'AI_CONSENT_REQUIRED') {
-            setPendingAction('teams')
+
+          if (error.code === "AI_CONSENT_REQUIRED") {
+            setPendingAction("teams")
             setConsentDialogOpen(true)
             return
           }
-          
+
           toast({
             variant: "destructive",
-            title: "Teams Extraction Failed",
-            description: error.error || "Could not extract tasks from Teams messages. Make sure you have saved some messages in Teams.",
+            title: "Teams extraction failed",
+            description:
+              error.error ||
+              "Could not extract tasks from Teams. Connect Microsoft in Settings and ensure you have recent messages.",
           })
         }
       } catch (error) {
@@ -903,7 +927,7 @@ export function TaskManagement() {
         <PageHeader
           eyebrow="Tasks"
           title="Task board"
-          subtitle="Unified view from Jira, email AI, Teams, and more"
+          subtitle="Open tasks stay until you mark them Done — incomplete work carries over. Pull in new items from Jira, email, and Teams."
           actions={
             <div className="flex flex-wrap items-center gap-2">
               <Button variant="outline" size="sm" onClick={handleSync} disabled={isSyncing}>

@@ -23,24 +23,48 @@ export async function generateText(prompt: string, options?: {
   topP?: number
   system?: string
   modelId?: string
+  responseMimeType?: string
 }): Promise<string> {
   if (USE_GEMINI && genAI) {
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-exp',
-      generationConfig: {
-        temperature: options?.temperature ?? 0.5,
-        topP: options?.topP ?? 0.95,
-        topK: 40,
-        maxOutputTokens: options?.maxTokens ?? 1024,
-      },
-    })
+    const config = {
+      temperature: options?.temperature ?? 0.5,
+      topP: options?.topP ?? 0.95,
+      topK: 40,
+      maxOutputTokens: options?.maxTokens ?? 1024,
+      responseMimeType: options?.responseMimeType,
+    }
 
     const fullPrompt = options?.system 
       ? `${options.system}\n\n${prompt}`
       : prompt
 
-    const result = await model.generateContent(fullPrompt)
-    return result.response.text().trim()
+    try {
+      const model = genAI.getGenerativeModel({
+        model: 'gemini-2.0-flash',
+        generationConfig: config,
+      })
+      const result = await model.generateContent(fullPrompt)
+      return result.response.text().trim()
+    } catch (err: any) {
+      const errStr = String(err) + ' ' + (err && typeof err === 'object' ? JSON.stringify(err) : '');
+      const isQuotaError = err.status === 429 || 
+        err.statusCode === 429 ||
+        String(err.status) === '429' ||
+        String(err.statusCode) === '429' ||
+        errStr.toLowerCase().includes('quota') ||
+        errStr.includes('429')
+
+      if (isQuotaError) {
+        console.warn('⚠️ Gemini 2.0 Flash hit quota limits (429). Falling back to gemini-flash-latest...')
+        const fallbackModel = genAI.getGenerativeModel({
+          model: 'gemini-flash-latest',
+          generationConfig: config,
+        })
+        const result = await fallbackModel.generateContent(fullPrompt)
+        return result.response.text().trim()
+      }
+      throw err
+    }
   }
 
   // Production: Use Bedrock
@@ -87,7 +111,7 @@ export async function chatWithTools(params: {
     }))
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-exp',
+      model: 'gemini-2.0-flash',
       generationConfig: {
         temperature: params.temperature ?? 0.5,
         topP: 0.95,
