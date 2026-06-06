@@ -180,6 +180,9 @@ export const cacheKeys = {
   
   jiraIssues: (userId: string) => 
     `jira:issues:${userId}`,
+
+  githubIssues: (userId: string) =>
+    `github:issues:${userId}`,
 }
 
 // Default TTL values (in seconds)
@@ -189,6 +192,7 @@ export const cacheTTL = {
   integrations: 600,  // 10 minutes
   tasks: 300,         // 5 minutes
   jiraIssues: 600,    // 10 minutes
+  githubIssues: 600,  // 10 minutes
 }
 
 // Shorthand functions for easier imports

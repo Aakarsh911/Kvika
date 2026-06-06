@@ -96,6 +96,7 @@ enum Provider {
   GOOGLE
   MICROSOFT
   JIRA
+  GITHUB
 }
 
 model Integration {

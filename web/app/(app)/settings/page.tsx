@@ -10,6 +10,7 @@ import {
   Calendar,
   Slack,
   Github,
+  Users,
   Settings2,
   PlugZap,
   RefreshCcw,
@@ -33,7 +34,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-type Service = "GOOGLE" | "JIRA" | "SLACK" | "TEAMS"
+type Service = "GOOGLE" | "JIRA" | "GITHUB" | "SLACK" | "TEAMS"
 
 interface IntegrationStatus {
   provider: Service
@@ -52,6 +53,7 @@ export default function SettingsPage() {
   const [integrations, setIntegrations] = useState<Record<string, boolean>>({
     GOOGLE: false,
     JIRA: false,
+    GITHUB: false,
     SLACK: false,
     TEAMS: false,
     MICROSOFT: false,
@@ -67,11 +69,17 @@ export default function SettingsPage() {
     } else if (connected === "microsoft") {
       console.info("Microsoft Teams connected")
       router.replace("/settings")
+    } else if (connected === "github") {
+      console.info("GitHub connected")
+      router.replace("/settings")
     } else if (error?.startsWith("jira")) {
       console.warn("Jira connect error:", error)
       router.replace("/settings")
     } else if (error?.startsWith("microsoft")) {
       console.warn("Microsoft connect error:", error)
+      router.replace("/settings")
+    } else if (error?.startsWith("github")) {
+      console.warn("GitHub connect error:", error)
       router.replace("/settings")
     }
 
@@ -104,6 +112,12 @@ export default function SettingsPage() {
       description: "Connect to Atlassian Jira to sync issues and plan time",
     },
     {
+      provider: "GITHUB",
+      connected: Boolean(integrations.GITHUB),
+      label: "GitHub",
+      description: "Sync assigned issues and pull requests into your task board",
+    },
+    {
       provider: "SLACK",
       connected: Boolean(integrations.SLACK),
       label: "Slack",
@@ -123,6 +137,10 @@ export default function SettingsPage() {
 
   const connectMicrosoft = () => {
     window.location.href = "/api/integrations/microsoft/auth"
+  }
+
+  const connectGithub = () => {
+    window.location.href = "/api/integrations/github/auth"
   }
 
   const disconnect = async (provider: Service) => {
@@ -206,8 +224,9 @@ export default function SettingsPage() {
                 <CardTitle className="flex items-center gap-2">
                   {s.provider === "GOOGLE" && <Calendar className="w-5 h-5 text-primary" />}
                   {s.provider === "JIRA" && <PlugZap className="w-5 h-5 text-primary" />}
+                  {s.provider === "GITHUB" && <Github className="w-5 h-5 text-primary" />}
                   {s.provider === "SLACK" && <Slack className="w-5 h-5 text-primary" />}
-                  {s.provider === "TEAMS" && <Github className="w-5 h-5 text-primary rotate-90" />}
+                  {s.provider === "TEAMS" && <Users className="w-5 h-5 text-primary" />}
                   {s.label}
                 </CardTitle>
                 {s.connected ? (
@@ -226,6 +245,12 @@ export default function SettingsPage() {
                       <Button variant="outline" disabled={loading} onClick={() => disconnect("JIRA")} className="cursor-pointer">Disable</Button>
                     ) : (
                       <Button className="gradient-primary text-white cursor-pointer" onClick={connectJira}>Connect</Button>
+                    )
+                  ) : s.provider === "GITHUB" ? (
+                    s.connected ? (
+                      <Button variant="outline" disabled={loading} onClick={() => disconnect("GITHUB")} className="cursor-pointer">Disable</Button>
+                    ) : (
+                      <Button className="gradient-primary text-white cursor-pointer" onClick={connectGithub}>Connect</Button>
                     )
                   ) : s.provider === "GOOGLE" ? (
                     <Button variant="outline" disabled={true}>

@@ -52,3 +52,11 @@ Optional (Atlassian Jira OAuth 2.0):
 - JIRA_REDIRECT_URI=http://localhost:3000/api/integrations/jira/callback
 
 Ensure your Atlassian app has scopes: `read:jira-user read:jira-work read:me offline_access` and whitelist the redirect URI.
+
+Optional (GitHub OAuth App):
+
+- GITHUB_CLIENT_ID=your_github_client_id
+- GITHUB_CLIENT_SECRET=your_github_client_secret
+- GITHUB_REDIRECT_URI=http://localhost:3000/api/integrations/github/callback
+
+Create an OAuth App at GitHub Developer Settings with callback URL matching `GITHUB_REDIRECT_URI`. Request scopes: `read:user`, `repo` (or `public_repo` for public repositories only).
