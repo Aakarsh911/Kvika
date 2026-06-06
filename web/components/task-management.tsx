@@ -12,6 +12,7 @@ import {
   MoreHorizontal,
   Mail,
   KanbanSquare,
+  Github,
   Users,
   ListChecks,
   ListTodo,
@@ -69,6 +70,7 @@ type UITask = {
 
 const sourceConfig: Record<string, { icon: React.ElementType; color: string; name: string }> = {
   JIRA: { icon: KanbanSquare, color: "bg-blue-500/10 text-blue-600 border-blue-200", name: "Jira" },
+  GITHUB: { icon: Github, color: "bg-gray-500/10 text-gray-800 border-gray-200 dark:text-gray-200", name: "GitHub" },
   SLACK: { icon: MessageSquare, color: "bg-purple-500/10 text-purple-600 border-purple-200", name: "Slack" },
   TEAMS: { icon: Users, color: "bg-indigo-500/10 text-indigo-600 border-indigo-200", name: "Teams" },
   teams: { icon: Users, color: "bg-indigo-500/10 text-indigo-600 border-indigo-200", name: "Teams" },
@@ -89,6 +91,7 @@ export function TaskManagement() {
   const [loading, setLoading] = useState(true)
   const [sourceFilter, setSourceFilter] = useState<string>("all")
   const [isSyncing, startSyncTransition] = useTransition()
+  const [isSyncingGitHub, startGitHubSyncTransition] = useTransition()
   const [isExtractingTasks, startExtractTransition] = useTransition()
   const [isExtractingFromTeams, startTeamsExtractTransition] = useTransition()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -155,6 +158,28 @@ export function TaskManagement() {
   useEffect(() => {
     fetchTasks()
   }, [])
+
+  const handleSyncGitHub = () => {
+    startGitHubSyncTransition(async () => {
+      toast({ title: "Syncing with GitHub...", description: "Fetching assigned issues and PRs." })
+      const res = await fetch("/api/tasks/sync-github", { method: "POST" })
+      if (res.ok) {
+        const result = await res.json()
+        toast({
+          title: "Sync Complete",
+          description: result.message,
+        })
+        await fetchTasks()
+      } else {
+        const err = await res.json().catch(() => ({}))
+        toast({
+          variant: "destructive",
+          title: "Sync Failed",
+          description: err.error || "Could not sync tasks from GitHub.",
+        })
+      }
+    })
+  }
 
   const handleSync = () => {
     startSyncTransition(async () => {
@@ -722,6 +747,9 @@ export function TaskManagement() {
     if (task.sourceData?.fields?.project?.name) {
       return task.sourceData.fields.project.name
     }
+    if (task.source === "GITHUB" && task.sourceId) {
+      return task.sourceId.split("#")[0] ?? null
+    }
     return null
   }
 
@@ -886,6 +914,12 @@ export function TaskManagement() {
               {task.source === "EMAIL_AI" ? "Mail AI" : currentSourceConfig.name}
             </span>
 
+            {task.source === "GITHUB" && task.sourceData?.pull_request && (
+              <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                PR
+              </span>
+            )}
+
             {/* Status pill */}
             <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--cf-border)] bg-[var(--cf-bg-soft)] px-2 py-0.5 text-[11px] font-medium text-[var(--cf-text-muted)]">
               <span className={cn("h-1.5 w-1.5 rounded-full", statusDotColor)} />
@@ -927,12 +961,16 @@ export function TaskManagement() {
         <PageHeader
           eyebrow="Tasks"
           title="Task board"
-          subtitle="Open tasks stay until you mark them Done — incomplete work carries over. Pull in new items from Jira, email, and Teams."
+          subtitle="Open tasks stay until you mark them Done — incomplete work carries over. Pull in new items from Jira, GitHub, email, and Teams."
           actions={
             <div className="flex flex-wrap items-center gap-2">
               <Button variant="outline" size="sm" onClick={handleSync} disabled={isSyncing}>
                 <RefreshCw className={cn("mr-1.5 h-4 w-4", isSyncing && "animate-spin")} />
                 Sync Jira
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleSyncGitHub} disabled={isSyncingGitHub}>
+                <RefreshCw className={cn("mr-1.5 h-4 w-4", isSyncingGitHub && "animate-spin")} />
+                Sync GitHub
               </Button>
               <Button size="sm" className="cf-btn-primary gap-1.5" onClick={() => setShowQuickAdd(true)}>
                 <Plus className="h-4 w-4" />
@@ -1182,7 +1220,7 @@ export function TaskManagement() {
                 <h3 className="text-sm font-semibold text-[var(--cf-text)]">No tasks found</h3>
                 <p className="mt-1 max-w-xs text-center text-xs text-[var(--cf-text-muted)]">
                   {tasks.length === 0
-                    ? "Sync with Jira, extract from emails, or add a task manually to get started."
+                    ? "Sync with Jira or GitHub, extract from emails, or add a task manually to get started."
                     : "Try adjusting your search or filters."}
                 </p>
                 {tasks.length === 0 && (
