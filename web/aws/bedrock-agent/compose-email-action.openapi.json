@@ -1,0 +1,86 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "ChronoFlow Compose Email Action",
+    "version": "1.0.0",
+    "description": "Drafts a new email for user review. This action never sends email."
+  },
+  "paths": {
+    "/compose-new-email": {
+      "post": {
+        "operationId": "compose_new_email",
+        "summary": "Draft a new email",
+        "description": "Generate a new email draft for user review. Do not use this action unless the user explicitly asks to write or compose a new email. If the recipient is missing, ask the user for the recipient before calling this action. This action returns draft content only and never sends email.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "to": {
+                    "type": "string",
+                    "format": "email",
+                    "description": "Recipient email address. Required before drafting."
+                  },
+                  "subject": {
+                    "type": "string",
+                    "description": "Optional subject line. If omitted, ChronoFlow will generate one."
+                  },
+                  "context": {
+                    "type": "string",
+                    "description": "User instructions describing what the email should say."
+                  },
+                  "tone": {
+                    "type": "string",
+                    "enum": ["professional", "casual", "friendly", "formal"],
+                    "description": "Tone for the email draft. Defaults to professional."
+                  }
+                },
+                "required": ["context"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Email draft generated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "action": {
+                      "type": "string",
+                      "enum": ["show_new_email_draft"]
+                    },
+                    "to": {
+                      "type": "string"
+                    },
+                    "subject": {
+                      "type": "string"
+                    },
+                    "body": {
+                      "type": "string"
+                    },
+                    "tone": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["action", "to", "subject", "body"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is missing required drafting information"
+          },
+          "500": {
+            "description": "ChronoFlow could not generate the draft"
+          }
+        }
+      }
+    }
+  }
+}

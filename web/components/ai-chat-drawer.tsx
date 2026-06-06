@@ -12,6 +12,8 @@ import EmailDraftComponent from '@/components/email-draft-component'
 import JiraTicketCreator from '@/components/jira-ticket-creator'
 import { AIConsentDialog } from '@/components/ai-consent-dialog'
 
+const USE_BEDROCK_AGENT = process.env.NEXT_PUBLIC_USE_BEDROCK_AGENT === 'true'
+
 interface Email {
   id: string
   subject: string
@@ -55,6 +57,14 @@ interface Message {
   }
 }
 
+type AgentClientAction = {
+  type: 'show_new_email_draft'
+  to: string
+  subject: string
+  body: string
+  provider?: 'gmail' | 'outlook'
+}
+
 interface AIChatDrawerProps {
   isOpen: boolean
   onClose: () => void
@@ -77,6 +87,7 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
   const [pendingMessage, setPendingMessage] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const agentSessionIdRef = useRef<string | null>(null)
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -111,8 +122,13 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
     setIsTyping(true)
     
     try {
+      const apiPath = USE_BEDROCK_AGENT ? '/api/ai/agent' : '/api/ai/chat'
+      if (USE_BEDROCK_AGENT && !agentSessionIdRef.current) {
+        agentSessionIdRef.current = createAgentSessionId()
+      }
+
       // Call AI API
-      const response = await fetch('/api/ai/chat', {
+      const response = await fetch(apiPath, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -121,6 +137,7 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
             content: m.content,
           })),
           selectedEmail,
+          sessionId: USE_BEDROCK_AGENT ? agentSessionIdRef.current : undefined,
         }),
       })
 
@@ -138,7 +155,15 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
       }
 
       const data = await response.json()
+      if (data.sessionId) {
+        agentSessionIdRef.current = data.sessionId
+      }
       
+      if (data.clientAction) {
+        handleAgentClientAction(data.clientAction, data.message)
+        return
+      }
+
       // Check if AI wants to call a tool
       if (data.toolCall) {
         await handleToolCall(data.toolCall, data.message)
@@ -343,6 +368,25 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
           status: 'pending',
         },
       }
+      setMessages(prev => [...prev, aiMessage])
+    }
+  }
+
+  const handleAgentClientAction = (clientAction: AgentClientAction, message: string) => {
+    if (clientAction.type === 'show_new_email_draft') {
+      const aiMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: message || `I've drafted an email to ${clientAction.to}:`,
+        timestamp: new Date(),
+        newEmail: {
+          content: clientAction.body,
+          to: clientAction.to,
+          subject: clientAction.subject,
+          provider: clientAction.provider || 'gmail',
+        },
+      }
+
       setMessages(prev => [...prev, aiMessage])
     }
   }
@@ -734,5 +778,13 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
       />
     </>
   )
+}
+
+function createAgentSessionId() {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID()
+  }
+
+  return `chat-${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 

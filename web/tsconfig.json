@@ -33,8 +33,9 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
+    "/var/folders/xt/tfspm5rs6358lyqt_1m5bdl00000gn/T/chronoflow-next-dev/types/**/*.ts",
     "next-env.d.ts",
-    "/var/folders/xt/tfspm5rs6358lyqt_1m5bdl00000gn/T/chronoflow-next-dev/types/**/*.ts"
+    "/var/folders/1w/j20q17cj7rx7k7d3j2ybk39w0000gn/T/chronoflow-next-dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"
