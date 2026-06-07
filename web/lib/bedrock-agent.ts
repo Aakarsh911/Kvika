@@ -4,6 +4,8 @@ import {
   type InvokeAgentCommandOutput,
 } from "@aws-sdk/client-bedrock-agent-runtime"
 
+import { sanitizeAgentText } from "@/lib/agent-text"
+
 function assertEnv(name: string) {
   const value = process.env[name]
   if (!value) {
@@ -44,6 +46,7 @@ export function getBedrockAgentClient() {
 export interface BedrockAgentResult {
   text: string
   sessionId: string
+  traces: unknown[]
 }
 
 export async function invokeChronoFlowAgent(params: {
@@ -63,7 +66,7 @@ export async function invokeChronoFlowAgent(params: {
       agentAliasId,
       sessionId: params.sessionId,
       inputText: params.inputText,
-      enableTrace: params.enableTrace ?? false,
+      enableTrace: params.enableTrace ?? true,
       sessionState: {
         sessionAttributes: params.sessionAttributes,
         promptSessionAttributes: params.promptSessionAttributes,
@@ -73,18 +76,23 @@ export async function invokeChronoFlowAgent(params: {
 
   const decoder = new TextDecoder()
   let text = ""
+  const traces: unknown[] = []
 
   if (output.completion) {
     for await (const event of output.completion) {
       if (event.chunk?.bytes) {
         text += decoder.decode(event.chunk.bytes)
       }
+      if (event.trace) {
+        traces.push(event.trace)
+      }
     }
   }
 
   return {
-    text: text.trim(),
+    text: sanitizeAgentText(text),
     sessionId: params.sessionId,
+    traces,
   }
 }
 
@@ -109,18 +117,24 @@ export type AgentClientAction =
       description: string
       priority: string
     }
+  | {
+      type: "show_email_selector"
+    }
 
+/** Parse structured JSON the agent may return after a tool call or for UI actions. */
 export function extractAgentClientAction(text: string): {
   message: string
   clientAction: AgentClientAction | null
 } {
-  const parsed = parseJsonFromAgentText(text)
+  const cleanedText = sanitizeAgentText(text)
+  const parsed = parseJsonFromAgentText(cleanedText)
   const rawAction = parsed?.clientAction ?? normalizeLegacyAction(parsed)
 
   if (!rawAction?.type) {
-    const proseDraft = parseDraftFromAgentProse(text)
-    if (proseDraft) return proseDraft
-    return { message: text, clientAction: null }
+    return {
+      message: cleanedText || "I apologize, but I could not generate a response.",
+      clientAction: null,
+    }
   }
 
   switch (rawAction.type) {
@@ -167,7 +181,10 @@ export function extractAgentClientAction(text: string): {
         typeof rawAction.description === "string"
       ) {
         return {
-          message: pickMessage(parsed, "I'll help you create a Jira ticket. Please review and edit the details:"),
+          message: pickMessage(
+            parsed,
+            "I'll help you create a Jira ticket. Please review and edit the details:",
+          ),
           clientAction: {
             type: "show_jira_ticket_draft",
             title: rawAction.title,
@@ -180,12 +197,17 @@ export function extractAgentClientAction(text: string): {
         }
       }
       break
+    case "show_email_selector":
+      return {
+        message: pickMessage(parsed, "Please select an email to reply to."),
+        clientAction: { type: "show_email_selector" },
+      }
   }
 
-  return { message: text, clientAction: null }
+  return { message: cleanedText, clientAction: null }
 }
 
-function normalizeLegacyAction(parsed: any): any | null {
+function normalizeLegacyAction(parsed: Record<string, unknown> | null): Record<string, unknown> | null {
   if (!parsed || typeof parsed !== "object") return null
 
   if (parsed.action === "show_new_email_draft") {
@@ -217,20 +239,27 @@ function normalizeLegacyAction(parsed: any): any | null {
     }
   }
 
+  if (parsed.action === "show_email_selector") {
+    return { type: "show_email_selector" }
+  }
+
   return null
 }
 
-function pickMessage(parsed: any, fallback: string) {
+function pickMessage(parsed: Record<string, unknown> | null, fallback: string) {
   return typeof parsed?.message === "string" && parsed.message.trim()
     ? parsed.message.trim()
     : fallback
 }
 
-function parseJsonFromAgentText(text: string): any | null {
+function parseJsonFromAgentText(text: string): Record<string, unknown> | null {
   const trimmed = text.trim()
 
   try {
-    return JSON.parse(trimmed)
+    const parsed = JSON.parse(trimmed)
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : null
   } catch {
     // Agent instructions may wrap JSON in a fenced code block.
   }
@@ -238,7 +267,10 @@ function parseJsonFromAgentText(text: string): any | null {
   const fencedJson = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)
   if (fencedJson?.[1]) {
     try {
-      return JSON.parse(fencedJson[1])
+      const parsed = JSON.parse(fencedJson[1])
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? (parsed as Record<string, unknown>)
+        : null
     } catch {
       // Fall through.
     }
@@ -248,61 +280,14 @@ function parseJsonFromAgentText(text: string): any | null {
   const lastBrace = trimmed.lastIndexOf("}")
   if (firstBrace !== -1 && lastBrace > firstBrace) {
     try {
-      return JSON.parse(trimmed.slice(firstBrace, lastBrace + 1))
+      const parsed = JSON.parse(trimmed.slice(firstBrace, lastBrace + 1))
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? (parsed as Record<string, unknown>)
+        : null
     } catch {
       return null
     }
   }
 
   return null
-}
-
-function parseDraftFromAgentProse(text: string): {
-  message: string
-  clientAction: AgentClientAction
-} | null {
-  const emailMatch = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)
-  const preMatch = text.match(/<pre>([\s\S]*?)<\/pre>/i)
-  const draftText = preMatch?.[1]?.trim() || extractPlainTextDraft(text)
-
-  if (!emailMatch || !draftText) {
-    return null
-  }
-
-  const subjectMatch = draftText.match(/^Subject:\s*(.+)$/im)
-  const subject = subjectMatch?.[1]?.trim() || "Follow up"
-  const body = draftText.replace(/^Subject:\s*.+\r?\n+/im, "").trim()
-
-  if (!body) {
-    return null
-  }
-
-  return {
-    message: `I've drafted an email to ${emailMatch[0]}:`,
-    clientAction: {
-      type: "show_new_email_draft",
-      to: emailMatch[0],
-      subject,
-      body,
-      provider: "gmail",
-    },
-  }
-}
-
-function extractPlainTextDraft(text: string) {
-  const subjectIndex = text.search(/^Subject:\s*.+$/im)
-  if (subjectIndex === -1) {
-    return null
-  }
-
-  const draftAndTrailingText = text.slice(subjectIndex).trim()
-  const trailingReviewText = draftAndTrailingText.search(
-    /\n\s*(Please review|Let me know if you would like|Would you like|Review the draft)/i,
-  )
-
-  if (trailingReviewText === -1) {
-    return draftAndTrailingText
-  }
-
-  return draftAndTrailingText.slice(0, trailingReviewText).trim()
 }

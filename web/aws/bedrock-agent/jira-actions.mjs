@@ -12,7 +12,7 @@ export const handler = async (event) => {
   try {
     const input = extractInput(event)
 
-    if (!input.title || !input.description) {
+    if (!input.title) {
       return actionResponse({
         actionGroup,
         apiPath,
@@ -20,7 +20,7 @@ export const handler = async (event) => {
         statusCode: 400,
         body: {
           error: "Missing fields",
-          message: "Ask the user for a ticket title and description before preparing the Jira ticket.",
+          message: "Ask the user for a ticket title before preparing the Jira ticket.",
         },
       })
     }
@@ -29,6 +29,7 @@ export const handler = async (event) => {
       title: input.title,
       description: input.description,
       priority: input.priority,
+      context: input.context,
     })
 
     return actionResponse({

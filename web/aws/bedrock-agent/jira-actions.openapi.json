@@ -10,7 +10,7 @@
       "post": {
         "operationId": "create_jira_ticket",
         "summary": "Prepare a Jira ticket draft",
-        "description": "Prepare a Jira ticket draft for the user to review and create in ChronoFlow. Use when the user asks to create, file, or log a Jira ticket or issue. Collect title and description before calling.",
+        "description": "Prepare a Jira ticket draft for the user to review and create in ChronoFlow. Use when the user asks to create, file, or log a Jira ticket or issue. You need a title; write the description yourself if the user does not provide one.",
         "requestBody": {
           "required": true,
           "content": {
@@ -25,14 +25,18 @@
                   },
                   "description": {
                     "type": "string",
-                    "description": "Issue description."
+                    "description": "Issue description. Optional — ChronoFlow generates one from the title when omitted."
+                  },
+                  "context": {
+                    "type": "string",
+                    "description": "Optional extra user context to help generate the description."
                   },
                   "priority": {
                     "type": "string",
                     "enum": ["High", "Medium", "Low"]
                   }
                 },
-                "required": ["title", "description"]
+                "required": ["title"]
               }
             }
           }

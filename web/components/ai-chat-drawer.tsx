@@ -11,7 +11,6 @@ import EmailSelectorModal from '@/components/email-selector-modal'
 import EmailDraftComponent from '@/components/email-draft-component'
 import JiraTicketCreator from '@/components/jira-ticket-creator'
 import { AIConsentDialog } from '@/components/ai-consent-dialog'
-
 const USE_BEDROCK_AGENT = process.env.NEXT_PUBLIC_USE_BEDROCK_AGENT === 'true'
 
 interface Email {
@@ -78,6 +77,9 @@ type AgentClientAction =
       description: string
       priority: string
     }
+  | {
+      type: 'show_email_selector'
+    }
 
 interface AIChatDrawerProps {
   isOpen: boolean
@@ -133,6 +135,7 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
     
     setMessages(prev => [...prev, userMessage])
     setInput('')
+
     setIsTyping(true)
     
     try {
@@ -182,7 +185,6 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
       if (data.toolCall) {
         await handleToolCall(data.toolCall, data.message)
       } else {
-        // Regular AI response
         const aiMessage: Message = {
           id: Date.now().toString(),
           role: 'assistant',
@@ -438,6 +440,20 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
       }
 
       setMessages(prev => [...prev, aiMessage])
+      return
+    }
+
+    if (clientAction.type === 'show_email_selector') {
+      setShowEmailSelector(true)
+      setMessages(prev => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: message || 'Please select an email to reply to.',
+          timestamp: new Date(),
+        },
+      ])
     }
   }
 
@@ -698,6 +714,18 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
 
           {/* Input */}
           <div className="cf-ai-drawer-input">
+            <div className="mb-2 flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 text-xs"
+                onClick={() => setShowEmailSelector(true)}
+              >
+                <Mail className="h-3.5 w-3.5" />
+                Reply to email
+              </Button>
+            </div>
             <div className="relative">
               <Textarea
                 ref={textareaRef}
@@ -742,6 +770,7 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
                   agentSessionIdRef.current = createAgentSessionId()
                 }
 
+                const lastUserMessage = [...messages].reverse().find((m) => m.role === 'user')
                 const response = await fetch('/api/ai/agent', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
@@ -750,7 +779,9 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
                       ...messages,
                       {
                         role: 'user',
-                        content: 'Please draft a professional reply to the email in context.',
+                        content:
+                          lastUserMessage?.content ||
+                          'Draft a reply to the selected email.',
                       },
                     ].map((m) => ({
                       role: m.role,

@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { requireAIConsent } from "@/lib/ai-consent"
 import { buildAgentRuntimePrompt } from "@/lib/agent-runtime-prompt"
+import { extractToolResultsFromTrace } from "@/lib/agent-tool-results"
 import { extractAgentClientAction, invokeChronoFlowAgent } from "@/lib/bedrock-agent"
 
 type ChatMessage = {
@@ -57,15 +58,15 @@ export async function POST(request: NextRequest) {
     }
 
     const lastMessage = messages[messages.length - 1]
-    if (!lastMessage?.content) {
-      return NextResponse.json({ error: "Missing message" }, { status: 400 })
+    if (!lastMessage?.content || lastMessage.role !== "user") {
+      return NextResponse.json({ error: "Missing user message" }, { status: 400 })
     }
 
     const agentSessionId = sanitizeSessionId(sessionId) || randomUUID()
+
     const inputText = buildAgentRuntimePrompt({
-      messages,
+      lastUserMessage: lastMessage.content,
       selectedEmail,
-      userEmail: session.user.email,
     })
 
     const promptSessionAttributes: Record<string, string> = {}
@@ -82,8 +83,17 @@ export async function POST(request: NextRequest) {
         userEmail: session.user.email,
       },
       promptSessionAttributes,
-      enableTrace: process.env.BEDROCK_AGENT_ENABLE_TRACE === "true",
+      enableTrace: true,
     })
+
+    const toolResult = extractToolResultsFromTrace(result.traces)
+    if (toolResult.clientAction) {
+      return NextResponse.json({
+        message: toolResult.message || result.text || "Done.",
+        clientAction: toolResult.clientAction,
+        sessionId: result.sessionId,
+      })
+    }
 
     const { message, clientAction } = extractAgentClientAction(result.text)
 

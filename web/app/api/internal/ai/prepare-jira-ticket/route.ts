@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { ZodError } from "zod"
 import { isInternalAgentAuthorized } from "@/lib/internal-agent-auth"
-import { buildJiraTicketDraftAction, jiraTicketDraftInputSchema } from "@/lib/jira-ticket-draft"
+import { jiraTicketDraftInputSchema, resolveJiraTicketDraft } from "@/lib/jira-ticket-draft"
 
 export async function POST(request: NextRequest) {
   if (!isInternalAgentAuthorized(request)) {
@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const input = jiraTicketDraftInputSchema.parse(body)
-    const draft = buildJiraTicketDraftAction(input)
+    const draft = await resolveJiraTicketDraft(input)
 
     return NextResponse.json(draft)
   } catch (error) {
