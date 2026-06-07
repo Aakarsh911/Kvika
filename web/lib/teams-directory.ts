@@ -168,6 +168,25 @@ async function searchOrgDirectory(
   accessToken: string,
   name: string,
 ): Promise<TeamDirectoryMember | null> {
+  const candidates = await fetchOrgCandidates(accessToken, name)
+
+  let best: TeamDirectoryMember | null = null
+  let bestScore = 0
+  for (const c of candidates) {
+    const score = scoreNameMatch(name, c.displayName)
+    if (score > bestScore) {
+      bestScore = score
+      best = c
+    }
+  }
+
+  return best && bestScore >= 50 ? best : null
+}
+
+async function fetchOrgCandidates(
+  accessToken: string,
+  name: string,
+): Promise<TeamDirectoryMember[]> {
   const client = Client.init({ authProvider: (done) => done(null, accessToken) })
   const escaped = name.replace(/'/g, "''")
 
@@ -220,17 +239,45 @@ async function searchOrgDirectory(
     // ignore
   }
 
-  let best: TeamDirectoryMember | null = null
-  let bestScore = 0
-  for (const c of candidates) {
-    const score = scoreNameMatch(name, c.displayName)
-    if (score > bestScore) {
-      bestScore = score
-      best = c
+  return candidates
+}
+
+/**
+ * Typeahead search across all available people sources for the meeting UI.
+ * Returns ranked {name, email} suggestions for a partial query.
+ */
+export async function searchPeople(
+  userEmail: string,
+  query: string,
+  limit = 8,
+): Promise<{ name: string; email: string }[]> {
+  const q = query.trim()
+  if (q.length < 2) return []
+
+  const accessToken = await getMicrosoftAccessToken(userEmail)
+
+  const [teamMembers, calendarContacts, orgCandidates] = await Promise.all([
+    accessToken ? getTeamMembersWithToken(accessToken).catch(() => []) : Promise.resolve([]),
+    getCalendarContacts(userEmail).catch(() => []),
+    accessToken ? fetchOrgCandidates(accessToken, q).catch(() => []) : Promise.resolve([]),
+  ])
+
+  const byEmail = new Map<string, { member: TeamDirectoryMember; score: number }>()
+  for (const member of [...teamMembers, ...calendarContacts, ...orgCandidates]) {
+    if (!member.email) continue
+    const score = scoreNameMatch(q, member.displayName)
+    if (score <= 0) continue
+    const key = member.email.toLowerCase()
+    const existing = byEmail.get(key)
+    if (!existing || score > existing.score) {
+      byEmail.set(key, { member, score })
     }
   }
 
-  return best && bestScore >= 50 ? best : null
+  return Array.from(byEmail.values())
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map(({ member }) => ({ name: member.displayName, email: member.email as string }))
 }
 
 function scoreNameMatch(query: string, name: string): number {

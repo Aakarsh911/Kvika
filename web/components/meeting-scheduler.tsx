@@ -1,7 +1,7 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { Loader2, CheckCircle2, X, Sparkles, Plus, Trash2, Video, ExternalLink } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Loader2, CheckCircle2, X, Sparkles, Plus, Trash2, Video, ExternalLink, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -28,6 +28,128 @@ interface MeetingSchedulerProps {
   availableProviders: { google: boolean; teams: boolean }
   onSuccess?: (result: { meetingUrl: string | null; provider: string }) => void
   onClose?: () => void
+}
+
+type PersonSuggestion = { name: string; email: string }
+
+const EMAIL_IN_TEXT = /<([^>]+)>|([^\s<>]+@[^\s<>]+\.[^\s<>]+)/
+
+function parseAttendeeText(text: string): { name: string; email: string | null } {
+  const trimmed = text.trim()
+  const match = trimmed.match(EMAIL_IN_TEXT)
+  const email = match ? (match[1] || match[2]) : null
+  const name = email ? trimmed.replace(/<[^>]*>/, '').trim() || email : trimmed
+  return { name, email }
+}
+
+function AttendeeRow({
+  attendee,
+  onChange,
+  onRemove,
+}: {
+  attendee: MeetingAttendee
+  onChange: (patch: MeetingAttendee) => void
+  onRemove: () => void
+}) {
+  const initial = attendee.email
+    ? attendee.name && attendee.name !== attendee.email
+      ? `${attendee.name} <${attendee.email}>`
+      : attendee.email
+    : attendee.name || ''
+  const [text, setText] = useState(initial)
+  const [suggestions, setSuggestions] = useState<PersonSuggestion[]>([])
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const justPicked = useRef(false)
+
+  useEffect(() => {
+    if (justPicked.current) {
+      justPicked.current = false
+      return
+    }
+    const q = text.trim()
+    if (q.length < 2 || EMAIL_IN_TEXT.test(q)) {
+      setSuggestions([])
+      return
+    }
+    const handle = setTimeout(async () => {
+      try {
+        setLoading(true)
+        const res = await fetch(`/api/people/search?q=${encodeURIComponent(q)}`)
+        const data = await res.json()
+        setSuggestions(data.people || [])
+        setOpen((data.people || []).length > 0)
+      } catch {
+        setSuggestions([])
+      } finally {
+        setLoading(false)
+      }
+    }, 250)
+    return () => clearTimeout(handle)
+  }, [text])
+
+  const commit = (value: string) => {
+    const parsed = parseAttendeeText(value)
+    onChange({ name: parsed.name, email: parsed.email, matched: !!parsed.email })
+  }
+
+  const pick = (s: PersonSuggestion) => {
+    justPicked.current = true
+    const display = `${s.name} <${s.email}>`
+    setText(display)
+    setOpen(false)
+    setSuggestions([])
+    onChange({ name: s.name, email: s.email, matched: true })
+  }
+
+  const unresolved = !attendee.email
+
+  return (
+    <div className="relative">
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--cf-text-muted)]" />
+          <Input
+            value={text}
+            onChange={(e) => {
+              setText(e.target.value)
+              commit(e.target.value)
+            }}
+            onFocus={() => suggestions.length > 0 && setOpen(true)}
+            onBlur={() => setTimeout(() => setOpen(false), 150)}
+            placeholder="Type a name or email…"
+            className={cn(
+              'h-8 text-sm pl-7',
+              unresolved && text.trim() && 'border-amber-500/60',
+            )}
+          />
+          {loading && (
+            <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-[var(--cf-text-muted)]" />
+          )}
+        </div>
+        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={onRemove}>
+          <Trash2 className="h-3.5 w-3.5 text-slate-400" />
+        </Button>
+      </div>
+
+      {open && suggestions.length > 0 && (
+        <div className="absolute z-20 mt-1 w-full rounded-lg border border-[var(--cf-border)] bg-[var(--cf-bg)] shadow-xl overflow-hidden">
+          {suggestions.map((s) => (
+            <button
+              key={s.email}
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => pick(s)}
+              className="flex w-full flex-col items-start px-3 py-2 text-left hover:bg-white/5"
+            >
+              <span className="text-sm font-medium">{s.name}</span>
+              <span className="text-xs text-[var(--cf-text-muted)]">{s.email}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 function isoToLocalInput(iso: string): string {
@@ -256,31 +378,18 @@ export default function MeetingScheduler({
           <Label className="text-xs font-semibold mb-2 block">Attendees</Label>
           <div className="space-y-2">
             {attendees.map((a, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <Input
-                  value={a.email ?? ''}
-                  onChange={(e) => updateAttendee(i, { email: e.target.value, matched: !!e.target.value })}
-                  placeholder={a.matched ? '' : `email for ${a.name || 'attendee'}`}
-                  className={cn(
-                    'h-8 text-sm flex-1',
-                    !a.email && 'border-amber-500/60 placeholder:text-amber-600/70',
-                  )}
-                />
-                {a.name && a.email && (
-                  <span className="text-xs text-[var(--cf-text-muted)] truncate max-w-[90px]" title={a.name}>
-                    {a.name}
-                  </span>
-                )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0"
-                  onClick={() => setAttendees((prev) => prev.filter((_, idx) => idx !== i))}
-                >
-                  <Trash2 className="h-3.5 w-3.5 text-slate-400" />
-                </Button>
-              </div>
+              <AttendeeRow
+                key={i}
+                attendee={a}
+                onChange={(patch) => updateAttendee(i, patch)}
+                onRemove={() => setAttendees((prev) => prev.filter((_, idx) => idx !== i))}
+              />
             ))}
+            {attendees.some((a) => !a.email && a.name) && (
+              <p className="text-[11px] text-amber-600">
+                Highlighted attendees have no email yet — start typing their name to search your directory.
+              </p>
+            )}
             <Button
               type="button"
               variant="outline"
