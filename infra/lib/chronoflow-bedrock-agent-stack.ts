@@ -45,22 +45,39 @@ export class ChronoFlowBedrockAgentStack extends cdk.Stack {
 
     const repoRoot = path.join(process.cwd(), "..")
     const bedrockAgentAssetPath = path.join(repoRoot, "web", "aws", "bedrock-agent")
-    const apiSchemaPayload = fs.readFileSync(
-      path.join(bedrockAgentAssetPath, "compose-email-action.openapi.json"),
-      "utf8"
+    const gmailApiSchemaPayload = fs.readFileSync(
+      path.join(bedrockAgentAssetPath, "gmail-actions.openapi.json"),
+      "utf8",
+    )
+    const jiraApiSchemaPayload = fs.readFileSync(
+      path.join(bedrockAgentAssetPath, "jira-actions.openapi.json"),
+      "utf8",
     )
 
-    const composeEmailLambda = new lambda.Function(this, "ComposeEmailActionLambda", {
-      description: "ChronoFlow Bedrock Agent action for draft-only compose_new_email.",
+    const lambdaEnvironment = {
+      CHRONOFLOW_INTERNAL_BASE_URL: chronoflowInternalBaseUrl.valueAsString,
+      INTERNAL_AGENT_SECRET: internalAgentSecret.valueAsString,
+    }
+
+    // Keep ComposeEmailActionLambda id so CDK updates the existing Lambda in place.
+    const gmailActionsLambda = new lambda.Function(this, "ComposeEmailActionLambda", {
+      description: "ChronoFlow Bedrock Agent Gmail actions: compose_new_email and reply_to_email.",
       runtime: lambda.Runtime.NODEJS_20_X,
-      handler: "compose-email-action.handler",
+      handler: "gmail-actions.handler",
+      code: lambda.Code.fromAsset(bedrockAgentAssetPath),
+      timeout: cdk.Duration.seconds(45),
+      memorySize: 256,
+      environment: lambdaEnvironment,
+    })
+
+    const jiraActionsLambda = new lambda.Function(this, "JiraActionsLambda", {
+      description: "ChronoFlow Bedrock Agent Jira action: create_jira_ticket draft preparation.",
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: "jira-actions.handler",
       code: lambda.Code.fromAsset(bedrockAgentAssetPath),
       timeout: cdk.Duration.seconds(30),
       memorySize: 256,
-      environment: {
-        CHRONOFLOW_INTERNAL_BASE_URL: chronoflowInternalBaseUrl.valueAsString,
-        INTERNAL_AGENT_SECRET: internalAgentSecret.valueAsString,
-      },
+      environment: lambdaEnvironment,
     })
 
     const bedrockAgentRole = new iam.Role(this, "BedrockAgentRole", {
@@ -83,22 +100,34 @@ export class ChronoFlowBedrockAgentStack extends cdk.Stack {
       },
     })
 
-    const bedrockInvokePermission = new lambda.CfnPermission(this, "AllowBedrockInvokeComposeEmail", {
+    const allowBedrockInvokeGmail = new lambda.CfnPermission(this, "AllowBedrockInvokeComposeEmail", {
       action: "lambda:InvokeFunction",
-      functionName: composeEmailLambda.functionName,
+      functionName: gmailActionsLambda.functionName,
+      principal: "bedrock.amazonaws.com",
+      sourceAccount: this.account,
+    })
+
+    const allowBedrockInvokeJira = new lambda.CfnPermission(this, "AllowBedrockInvokeJiraActions", {
+      action: "lambda:InvokeFunction",
+      functionName: jiraActionsLambda.functionName,
       principal: "bedrock.amazonaws.com",
       sourceAccount: this.account,
     })
 
     const agentInstruction = `You are ChronoFlow's productivity assistant. Help users manage email, tasks, calendar, and work planning.
 
-For compose_new_email:
-- Draft only. Never send email.
-- Use compose_new_email only when the user explicitly asks to write, draft, or compose a new email.
-- If the recipient email address is missing, ask the user for it before calling compose_new_email.
-- If the user asks you to send directly, refuse to send and explain that ChronoFlow will show a draft for review.
-- After compose_new_email succeeds, return ONLY this JSON shape and no markdown:
+Gmail tools (draft only — never send email):
+- compose_new_email: use when the user asks to write or compose a new email. Ask for recipient if missing.
+- reply_to_email: use when the user asks to reply to an email. Use emailId and provider from context; if missing, ask the user to select an email first.
+- After compose_new_email succeeds, return ONLY:
 {"message":"I've drafted an email to recipient@example.com:","clientAction":{"type":"show_new_email_draft","to":"recipient@example.com","subject":"Subject","body":"Email body","provider":"gmail"}}
+- After reply_to_email succeeds, return ONLY:
+{"message":"I've drafted a reply to \\"Subject\\":","clientAction":{"type":"show_email_reply_draft","emailId":"...","provider":"gmail","subject":"Subject","body":"Reply body"}}
+
+Jira tool:
+- create_jira_ticket: use when the user asks to create, file, or log a Jira ticket. Collect title and description first. The user chooses the project in ChronoFlow before creation.
+- After create_jira_ticket succeeds, return ONLY:
+{"message":"I'll help you create a Jira ticket. Please review and edit the details:","clientAction":{"type":"show_jira_ticket_draft","title":"...","description":"...","priority":"Medium"}}
 
 For normal conversation, answer naturally without JSON.`
 
@@ -106,29 +135,44 @@ For normal conversation, answer naturally without JSON.`
       type: "AWS::Bedrock::Agent",
       properties: {
         AgentName: agentName.valueAsString,
-        Description: "ChronoFlow AI assistant with tool action groups.",
+        Description: "ChronoFlow AI assistant with Gmail and Jira action groups.",
         AgentResourceRoleArn: bedrockAgentRole.roleArn,
         FoundationModel: foundationModel.valueAsString,
         Instruction: agentInstruction,
         IdleSessionTTLInSeconds: 900,
         AutoPrepare: true,
+        SkipResourceInUseCheckOnDelete: true,
         ActionGroups: [
           {
             ActionGroupName: "compose_email",
-            Description: "Drafts a new email for user review in ChronoFlow.",
+            Description: "Draft-only Gmail actions for compose and reply.",
             ActionGroupState: "ENABLED",
+            SkipResourceInUseCheckOnDelete: true,
             ActionGroupExecutor: {
-              Lambda: composeEmailLambda.functionArn,
+              Lambda: gmailActionsLambda.functionArn,
             },
             ApiSchema: {
-              Payload: apiSchemaPayload,
+              Payload: gmailApiSchemaPayload,
+            },
+          },
+          {
+            ActionGroupName: "jira",
+            Description: "Prepare Jira ticket drafts for user review.",
+            ActionGroupState: "ENABLED",
+            SkipResourceInUseCheckOnDelete: true,
+            ActionGroupExecutor: {
+              Lambda: jiraActionsLambda.functionArn,
+            },
+            ApiSchema: {
+              Payload: jiraApiSchemaPayload,
             },
           },
         ],
       },
     })
     bedrockAgent.node.addDependency(bedrockAgentRole)
-    bedrockAgent.node.addDependency(bedrockInvokePermission)
+    bedrockAgent.node.addDependency(allowBedrockInvokeGmail)
+    bedrockAgent.node.addDependency(allowBedrockInvokeJira)
 
     const bedrockAgentAlias = new cdk.CfnResource(this, "ChronoFlowAgentAlias", {
       type: "AWS::Bedrock::AgentAlias",
@@ -141,7 +185,11 @@ For normal conversation, answer naturally without JSON.`
     bedrockAgentAlias.node.addDependency(bedrockAgent)
 
     new cdk.CfnOutput(this, "ComposeEmailLambdaArn", {
-      value: composeEmailLambda.functionArn,
+      value: gmailActionsLambda.functionArn,
+    })
+
+    new cdk.CfnOutput(this, "JiraActionsLambdaArn", {
+      value: jiraActionsLambda.functionArn,
     })
 
     new cdk.CfnOutput(this, "BedrockAgentId", {

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { requireAIConsent } from "@/lib/ai-consent"
+import { buildAgentRuntimePrompt } from "@/lib/agent-runtime-prompt"
 import { extractAgentClientAction, invokeChronoFlowAgent } from "@/lib/bedrock-agent"
 
 type ChatMessage = {
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
           code: "AI_CONSENT_REQUIRED",
           message: "You must grant consent to use AI features. Please enable AI features in Settings.",
         },
-        { status: 403 }
+        { status: 403 },
       )
     }
 
@@ -61,15 +62,26 @@ export async function POST(request: NextRequest) {
     }
 
     const agentSessionId = sanitizeSessionId(sessionId) || randomUUID()
-    const inputText = buildAgentInput({
+    const inputText = buildAgentRuntimePrompt({
       messages,
       selectedEmail,
       userEmail: session.user.email,
     })
 
+    const promptSessionAttributes: Record<string, string> = {}
+    if (selectedEmail) {
+      promptSessionAttributes.selectedEmailId = selectedEmail.id
+      promptSessionAttributes.selectedEmailProvider = selectedEmail.provider
+      promptSessionAttributes.selectedEmailSubject = selectedEmail.subject
+    }
+
     const result = await invokeChronoFlowAgent({
       inputText,
       sessionId: agentSessionId,
+      sessionAttributes: {
+        userEmail: session.user.email,
+      },
+      promptSessionAttributes,
       enableTrace: process.env.BEDROCK_AGENT_ENABLE_TRACE === "true",
     })
 
@@ -87,39 +99,9 @@ export async function POST(request: NextRequest) {
         error: "Internal server error",
         details: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     )
   }
-}
-
-function buildAgentInput(params: {
-  messages: ChatMessage[]
-  selectedEmail?: SelectedEmail | null
-  userEmail: string
-}) {
-  const recentMessages = params.messages.slice(-8)
-  const conversation = recentMessages.map((message) => `${message.role}: ${message.content}`).join("\n")
-
-  const selectedEmailContext = params.selectedEmail
-    ? `\nCurrent email in context:
-- Subject: ${params.selectedEmail.subject}
-- From: ${params.selectedEmail.from.name} <${params.selectedEmail.from.address}>
-- ID: ${params.selectedEmail.id}
-- Provider: ${params.selectedEmail.provider}
-- Preview: ${params.selectedEmail.bodyPreview}`
-    : ""
-
-  return `You are ChronoFlow's AI assistant for ${params.userEmail}.
-
-Runtime rules:
-- For compose_new_email, draft only. Never send an email.
-- If the recipient email address is missing, ask a follow-up question for the recipient before using compose_new_email.
-- When compose_new_email succeeds, return ONLY this JSON shape and no markdown:
-{"message":"I've drafted an email to recipient@example.com:","clientAction":{"type":"show_new_email_draft","to":"recipient@example.com","subject":"Subject","body":"Email body","provider":"gmail"}}
-- For normal conversation, answer naturally without JSON.
-
-Conversation:
-${conversation}${selectedEmailContext}`
 }
 
 function sanitizeSessionId(sessionId?: string) {

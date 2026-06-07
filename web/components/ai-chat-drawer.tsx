@@ -57,13 +57,27 @@ interface Message {
   }
 }
 
-type AgentClientAction = {
-  type: 'show_new_email_draft'
-  to: string
-  subject: string
-  body: string
-  provider?: 'gmail' | 'outlook'
-}
+type AgentClientAction =
+  | {
+      type: 'show_new_email_draft'
+      to: string
+      subject: string
+      body: string
+      provider?: 'gmail' | 'outlook'
+    }
+  | {
+      type: 'show_email_reply_draft'
+      emailId: string
+      provider: 'gmail' | 'outlook'
+      subject: string
+      body: string
+    }
+  | {
+      type: 'show_jira_ticket_draft'
+      title: string
+      description: string
+      priority: string
+    }
 
 interface AIChatDrawerProps {
   isOpen: boolean
@@ -388,6 +402,42 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
       }
 
       setMessages(prev => [...prev, aiMessage])
+      return
+    }
+
+    if (clientAction.type === 'show_email_reply_draft') {
+      const aiMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: message || `I've drafted a reply to "${clientAction.subject}":`,
+        timestamp: new Date(),
+        draftEmail: {
+          content: clientAction.body,
+          emailId: clientAction.emailId,
+          provider: clientAction.provider,
+          subject: clientAction.subject,
+        },
+      }
+
+      setMessages(prev => [...prev, aiMessage])
+      return
+    }
+
+    if (clientAction.type === 'show_jira_ticket_draft') {
+      const aiMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: message || "I'll help you create a Jira ticket. Please review and edit the details:",
+        timestamp: new Date(),
+        jiraTicket: {
+          title: clientAction.title,
+          description: clientAction.description,
+          priority: clientAction.priority,
+          showCreator: true,
+        },
+      }
+
+      setMessages(prev => [...prev, aiMessage])
     }
   }
 
@@ -682,31 +732,69 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
         onClose={() => setShowEmailSelector(false)}
         onSelectEmail={(email) => {
           setShowEmailSelector(false)
-          
-          // Auto-trigger reply generation after email is selected
-          // Don't set selectedEmail in state, just use the email directly
+
           setTimeout(async () => {
             setIsTyping(true)
-            
+
             try {
-              console.log('Fetching email content for:', email.id, email.provider)
-              
-              // Fetch full email content
+              if (USE_BEDROCK_AGENT) {
+                if (!agentSessionIdRef.current) {
+                  agentSessionIdRef.current = createAgentSessionId()
+                }
+
+                const response = await fetch('/api/ai/agent', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    messages: [
+                      ...messages,
+                      {
+                        role: 'user',
+                        content: 'Please draft a professional reply to the email in context.',
+                      },
+                    ].map((m) => ({
+                      role: m.role,
+                      content: m.content,
+                    })),
+                    selectedEmail: email,
+                    sessionId: agentSessionIdRef.current,
+                  }),
+                })
+
+                if (!response.ok) {
+                  throw new Error('AI agent request failed')
+                }
+
+                const data = await response.json()
+                if (data.sessionId) {
+                  agentSessionIdRef.current = data.sessionId
+                }
+
+                if (data.clientAction) {
+                  handleAgentClientAction(data.clientAction, data.message)
+                } else {
+                  const aiMessage: Message = {
+                    id: Date.now().toString(),
+                    role: 'assistant',
+                    content: data.message || 'I could not draft a reply right now.',
+                    timestamp: new Date(),
+                  }
+                  setMessages((prev) => [...prev, aiMessage])
+                }
+                return
+              }
+
               const emailResponse = await fetch(
                 `/api/mail/email?id=${email.id}&provider=${email.provider}`,
-                { cache: 'no-store' }
+                { cache: 'no-store' },
               )
-              
+
               if (!emailResponse.ok) {
-                const errorText = await emailResponse.text()
-                console.error('Failed to fetch email:', errorText)
-                throw new Error(`Failed to fetch email: ${errorText}`)
+                throw new Error('Failed to fetch email')
               }
 
               const emailData = await emailResponse.json()
-              console.log('Email data fetched successfully:', emailData)
-              
-              // Generate reply using Gemini
+
               const replyResponse = await fetch('/api/ai/generate-reply', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -720,15 +808,11 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
               })
 
               if (!replyResponse.ok) {
-                const errorText = await replyResponse.text()
-                console.error('Failed to generate reply:', errorText)
-                throw new Error(`Failed to generate reply: ${errorText}`)
+                throw new Error('Failed to generate reply')
               }
 
               const { reply } = await replyResponse.json()
-              console.log('Reply generated successfully')
 
-              // Show draft in chat
               const aiMessage: Message = {
                 id: Date.now().toString(),
                 role: 'assistant',
@@ -741,8 +825,8 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
                   subject: email.subject,
                 },
               }
-              
-              setMessages(prev => [...prev, aiMessage])
+
+              setMessages((prev) => [...prev, aiMessage])
             } catch (error) {
               console.error('Error generating reply:', error)
               const errorMessage: Message = {
@@ -751,7 +835,7 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
                 content: `Sorry, I couldn't generate a reply. ${error instanceof Error ? error.message : 'Please try again.'}`,
                 timestamp: new Date(),
               }
-              setMessages(prev => [...prev, errorMessage])
+              setMessages((prev) => [...prev, errorMessage])
             } finally {
               setIsTyping(false)
             }

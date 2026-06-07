@@ -1,0 +1,95 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "ChronoFlow Gmail Actions",
+    "version": "1.0.0",
+    "description": "Draft-only Gmail actions for ChronoFlow. These actions never send email."
+  },
+  "paths": {
+    "/compose-new-email": {
+      "post": {
+        "operationId": "compose_new_email",
+        "summary": "Draft a new email",
+        "description": "Generate a new email draft for user review. Use only when the user explicitly asks to write or compose a new email. If the recipient is missing, ask for it before calling this action.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "to": {
+                    "type": "string",
+                    "format": "email",
+                    "description": "Recipient email address."
+                  },
+                  "subject": {
+                    "type": "string",
+                    "description": "Optional subject line."
+                  },
+                  "context": {
+                    "type": "string",
+                    "description": "What the email should say."
+                  },
+                  "tone": {
+                    "type": "string",
+                    "enum": ["professional", "casual", "friendly", "formal"]
+                  }
+                },
+                "required": ["context"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Email draft generated" },
+          "400": { "description": "Missing drafting information" },
+          "500": { "description": "Draft generation failed" }
+        }
+      }
+    },
+    "/reply-to-email": {
+      "post": {
+        "operationId": "reply_to_email",
+        "summary": "Draft a reply to an email",
+        "description": "Generate a reply draft for user review. Use when the user asks to reply to an email. Requires emailId and provider from the selected email in context, or ask the user to select an email first.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "emailId": {
+                    "type": "string",
+                    "description": "ID of the email to reply to."
+                  },
+                  "provider": {
+                    "type": "string",
+                    "enum": ["gmail", "outlook"],
+                    "description": "Mailbox provider for the email."
+                  },
+                  "tone": {
+                    "type": "string",
+                    "enum": ["professional", "casual", "friendly", "formal"]
+                  },
+                  "additionalInstructions": {
+                    "type": "string",
+                    "description": "Optional extra instructions for the reply draft."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Reply draft generated" },
+          "400": { "description": "Missing email context" },
+          "500": { "description": "Reply draft generation failed" }
+        }
+      }
+    }
+  }
+}

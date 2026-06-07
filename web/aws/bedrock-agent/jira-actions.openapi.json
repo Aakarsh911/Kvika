@@ -1,0 +1,48 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "ChronoFlow Jira Actions",
+    "version": "1.0.0",
+    "description": "Prepare Jira ticket drafts for user review in ChronoFlow."
+  },
+  "paths": {
+    "/create-jira-ticket": {
+      "post": {
+        "operationId": "create_jira_ticket",
+        "summary": "Prepare a Jira ticket draft",
+        "description": "Prepare a Jira ticket draft for the user to review and create in ChronoFlow. Use when the user asks to create, file, or log a Jira ticket or issue. Collect title and description before calling.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "description": "Short Jira issue summary."
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Issue description."
+                  },
+                  "priority": {
+                    "type": "string",
+                    "enum": ["High", "Medium", "Low"]
+                  }
+                },
+                "required": ["title", "description"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Jira ticket draft prepared" },
+          "400": { "description": "Missing ticket fields" },
+          "500": { "description": "Ticket preparation failed" }
+        }
+      }
+    }
+  }
+}

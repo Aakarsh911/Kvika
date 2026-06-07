@@ -49,6 +49,8 @@ export interface BedrockAgentResult {
 export async function invokeChronoFlowAgent(params: {
   inputText: string
   sessionId: string
+  sessionAttributes?: Record<string, string>
+  promptSessionAttributes?: Record<string, string>
   enableTrace?: boolean
 }): Promise<BedrockAgentResult> {
   const agentId = assertEnv("BEDROCK_AGENT_ID")
@@ -62,7 +64,11 @@ export async function invokeChronoFlowAgent(params: {
       sessionId: params.sessionId,
       inputText: params.inputText,
       enableTrace: params.enableTrace ?? false,
-    })
+      sessionState: {
+        sessionAttributes: params.sessionAttributes,
+        promptSessionAttributes: params.promptSessionAttributes,
+      },
+    }),
   )
 
   const decoder = new TextDecoder()
@@ -90,60 +96,134 @@ export type AgentClientAction =
       body: string
       provider?: "gmail" | "outlook"
     }
+  | {
+      type: "show_email_reply_draft"
+      emailId: string
+      provider: "gmail" | "outlook"
+      subject: string
+      body: string
+    }
+  | {
+      type: "show_jira_ticket_draft"
+      title: string
+      description: string
+      priority: string
+    }
 
 export function extractAgentClientAction(text: string): {
   message: string
   clientAction: AgentClientAction | null
 } {
   const parsed = parseJsonFromAgentText(text)
-  const action =
-    parsed?.clientAction?.type === "show_new_email_draft"
-      ? parsed.clientAction
-      : parsed?.action === "show_new_email_draft"
-        ? {
-            type: "show_new_email_draft",
-            to: parsed.to,
-            subject: parsed.subject,
-            body: parsed.body,
-            provider: parsed.provider,
-          }
-        : null
+  const rawAction = parsed?.clientAction ?? normalizeLegacyAction(parsed)
 
-  if (!action) {
-    const looseAction = parseLooseClientAction(text)
-    if (looseAction) {
-      return looseAction
-    }
-
+  if (!rawAction?.type) {
     const proseDraft = parseDraftFromAgentProse(text)
-    if (proseDraft) {
-      return proseDraft
-    }
-
+    if (proseDraft) return proseDraft
     return { message: text, clientAction: null }
   }
 
-  if (
-    typeof action.to !== "string" ||
-    typeof action.subject !== "string" ||
-    typeof action.body !== "string"
-  ) {
-    return { message: text, clientAction: null }
+  switch (rawAction.type) {
+    case "show_new_email_draft":
+      if (
+        typeof rawAction.to === "string" &&
+        typeof rawAction.subject === "string" &&
+        typeof rawAction.body === "string"
+      ) {
+        return {
+          message: pickMessage(parsed, `I've drafted an email to ${rawAction.to}:`),
+          clientAction: {
+            type: "show_new_email_draft",
+            to: rawAction.to,
+            subject: rawAction.subject,
+            body: rawAction.body,
+            provider: rawAction.provider === "outlook" ? "outlook" : "gmail",
+          },
+        }
+      }
+      break
+    case "show_email_reply_draft":
+      if (
+        typeof rawAction.emailId === "string" &&
+        (rawAction.provider === "gmail" || rawAction.provider === "outlook") &&
+        typeof rawAction.subject === "string" &&
+        typeof rawAction.body === "string"
+      ) {
+        return {
+          message: pickMessage(parsed, `I've drafted a reply to "${rawAction.subject}":`),
+          clientAction: {
+            type: "show_email_reply_draft",
+            emailId: rawAction.emailId,
+            provider: rawAction.provider,
+            subject: rawAction.subject,
+            body: rawAction.body,
+          },
+        }
+      }
+      break
+    case "show_jira_ticket_draft":
+      if (
+        typeof rawAction.title === "string" &&
+        typeof rawAction.description === "string"
+      ) {
+        return {
+          message: pickMessage(parsed, "I'll help you create a Jira ticket. Please review and edit the details:"),
+          clientAction: {
+            type: "show_jira_ticket_draft",
+            title: rawAction.title,
+            description: rawAction.description,
+            priority:
+              rawAction.priority === "High" || rawAction.priority === "Low"
+                ? rawAction.priority
+                : "Medium",
+          },
+        }
+      }
+      break
   }
 
-  return {
-    message:
-      typeof parsed.message === "string" && parsed.message.trim()
-        ? parsed.message.trim()
-        : `I've drafted an email to ${action.to}:`,
-    clientAction: {
+  return { message: text, clientAction: null }
+}
+
+function normalizeLegacyAction(parsed: any): any | null {
+  if (!parsed || typeof parsed !== "object") return null
+
+  if (parsed.action === "show_new_email_draft") {
+    return {
       type: "show_new_email_draft",
-      to: action.to,
-      subject: action.subject,
-      body: action.body,
-      provider: action.provider === "outlook" ? "outlook" : "gmail",
-    },
+      to: parsed.to,
+      subject: parsed.subject,
+      body: parsed.body,
+      provider: parsed.provider,
+    }
   }
+
+  if (parsed.action === "show_email_reply_draft") {
+    return {
+      type: "show_email_reply_draft",
+      emailId: parsed.emailId,
+      provider: parsed.provider,
+      subject: parsed.subject,
+      body: parsed.body,
+    }
+  }
+
+  if (parsed.action === "show_jira_ticket_draft") {
+    return {
+      type: "show_jira_ticket_draft",
+      title: parsed.title,
+      description: parsed.description,
+      priority: parsed.priority,
+    }
+  }
+
+  return null
+}
+
+function pickMessage(parsed: any, fallback: string) {
+  return typeof parsed?.message === "string" && parsed.message.trim()
+    ? parsed.message.trim()
+    : fallback
 }
 
 function parseJsonFromAgentText(text: string): any | null {
@@ -160,7 +240,7 @@ function parseJsonFromAgentText(text: string): any | null {
     try {
       return JSON.parse(fencedJson[1])
     } catch {
-      // Fall through to extracting a JSON object from prose.
+      // Fall through.
     }
   }
 
@@ -175,59 +255,6 @@ function parseJsonFromAgentText(text: string): any | null {
   }
 
   return null
-}
-
-function parseLooseClientAction(text: string): {
-  message: string
-  clientAction: AgentClientAction
-} | null {
-  if (!text.includes("show_new_email_draft")) {
-    return null
-  }
-
-  const to = extractLooseStringField(text, "to")
-  const subject = extractLooseStringField(text, "subject")
-  const body = extractLooseStringField(text, "body")
-  const provider = extractLooseStringField(text, "provider")
-  const message = extractLooseStringField(text, "message")
-
-  if (!to || !subject || !body) {
-    return null
-  }
-
-  return {
-    message: message || `I've drafted an email to ${to}:`,
-    clientAction: {
-      type: "show_new_email_draft",
-      to,
-      subject,
-      body,
-      provider: provider === "outlook" ? "outlook" : "gmail",
-    },
-  }
-}
-
-function extractLooseStringField(text: string, key: string) {
-  const fieldStart = text.match(new RegExp(`"${key}"\\s*:\\s*"`))
-  if (fieldStart?.index == null) {
-    return null
-  }
-
-  const valueStart = fieldStart.index + fieldStart[0].length
-  const rest = text.slice(valueStart)
-  const nextField = rest.search(/"\s*,\s*"[A-Za-z_][A-Za-z0-9_]*"\s*:/)
-  const objectEnd = rest.search(/"\s*}\s*}?/)
-  const end = nextField !== -1 ? nextField : objectEnd
-
-  if (end === -1) {
-    return null
-  }
-
-  return rest
-    .slice(0, end)
-    .replace(/\\n/g, "\n")
-    .replace(/\\"/g, '"')
-    .trim()
 }
 
 function parseDraftFromAgentProse(text: string): {
@@ -250,13 +277,11 @@ function parseDraftFromAgentProse(text: string): {
     return null
   }
 
-  const to = emailMatch[0]
-
   return {
-    message: `I've drafted an email to ${to}:`,
+    message: `I've drafted an email to ${emailMatch[0]}:`,
     clientAction: {
       type: "show_new_email_draft",
-      to,
+      to: emailMatch[0],
       subject,
       body,
       provider: "gmail",
@@ -272,7 +297,7 @@ function extractPlainTextDraft(text: string) {
 
   const draftAndTrailingText = text.slice(subjectIndex).trim()
   const trailingReviewText = draftAndTrailingText.search(
-    /\n\s*(Please review|Let me know if you would like|Would you like|Review the draft)/i
+    /\n\s*(Please review|Let me know if you would like|Would you like|Review the draft)/i,
   )
 
   if (trailingReviewText === -1) {

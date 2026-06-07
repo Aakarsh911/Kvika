@@ -1,17 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { ZodError } from "zod"
 import { composeEmailDraft, composeEmailInputSchema } from "@/lib/compose-email"
-
-function isAuthorized(request: NextRequest) {
-  const secret = process.env.INTERNAL_AGENT_SECRET
-  if (!secret) return false
-
-  const provided = request.headers.get("x-chronoflow-agent-secret")
-  return provided === secret
-}
+import { isInternalAgentAuthorized } from "@/lib/internal-agent-auth"
 
 export async function POST(request: NextRequest) {
-  if (!isAuthorized(request)) {
+  if (!isInternalAgentAuthorized(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 

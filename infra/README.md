@@ -1,16 +1,18 @@
 # ChronoFlow Infrastructure
 
-CDK stack for the Bedrock Agent compose-email path.
+CDK stack for the ChronoFlow Bedrock Agent and tool Lambdas.
 
 ## Resources
 
-- Lambda for the Bedrock `compose_new_email` action
-- Lambda execution role and CloudWatch Logs permissions
+- `GmailActionsLambda` — `compose_new_email` and `reply_to_email`
+- `JiraActionsLambda` — `create_jira_ticket` draft preparation
 - Bedrock Agent execution role
 - Bedrock Agent named `chronoflow-agent`
-- `compose_email` action group as the first tool action
+- Action groups:
+  - `gmail` — compose + reply (draft only)
+  - `jira` — Jira ticket draft preparation
 - Bedrock Agent alias
-- Lambda invoke permission for Bedrock
+- Lambda invoke permissions for Bedrock
 
 ## Deploy
 
@@ -36,15 +38,20 @@ BEDROCK_AGENT_ID=<BedrockAgentId output>
 BEDROCK_AGENT_ALIAS_ID=<BedrockAgentAliasId output>
 BEDROCK_MODEL_ID=<BedrockModelId output>
 NEXT_PUBLIC_USE_BEDROCK_AGENT=true
+INTERNAL_AGENT_SECRET=<same secret used in CDK deploy>
 ```
 
-## Existing Spike Resources
+## Architecture
 
-The earlier manually-created resources can keep running while this CDK stack is deployed. This stack intentionally lets CDK generate Lambda/IAM physical names and uses `chronoflow-agent` as the generic Bedrock Agent name so future action groups can be added under the same agent.
+One Bedrock Agent orchestrates all chat tools. Each action group maps to one Lambda:
 
-After the web app is cut over to the CDK stack outputs, delete the old spike resources:
+- `gmail` → `gmail-actions.mjs`
+- `jira` → `jira-actions.mjs`
 
-- `chronoflow-compose-email-action`
-- `chronoflow-compose-email-lambda-role`
-- `chronoflow-compose-email-agent`
-- `chronoflow-bedrock-agent-role`
+Lambdas call secret-protected internal APIs in the web app:
+
+- `/api/internal/ai/compose-email`
+- `/api/internal/ai/reply-email`
+- `/api/internal/ai/prepare-jira-ticket`
+
+The web app invokes the agent through `/api/ai/agent` when `NEXT_PUBLIC_USE_BEDROCK_AGENT=true`.
