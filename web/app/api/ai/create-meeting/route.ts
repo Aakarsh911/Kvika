@@ -123,10 +123,22 @@ async function createTeamsMeeting(userEmail: string, input: MeetingInput, attend
     .header("Prefer", 'outlook.timezone="UTC"')
     .post(eventPayload)
 
+  const meetingUrl = event.onlineMeeting?.joinUrl || event.webLink || null
+
+  await persistCalendarEvent({
+    userId: user!.id,
+    organizerEmail: userEmail,
+    input,
+    attendees,
+    source: "MICROSOFT",
+    sourceId: event.id,
+    meetingUrl,
+  })
+
   return NextResponse.json({
     success: true,
     provider: "teams",
-    meetingUrl: event.onlineMeeting?.joinUrl || event.webLink || null,
+    meetingUrl,
     eventId: event.id,
     message: `Meeting created and invitations sent to ${event.attendees?.length || 0} attendee(s).`,
   })
@@ -183,11 +195,64 @@ async function createGoogleMeeting(userEmail: string, input: MeetingInput, atten
     requestBody,
   })
 
+  const meetingUrl = response.data.hangoutLink || response.data.htmlLink || null
+
+  if (user) {
+    await persistCalendarEvent({
+      userId: user.id,
+      organizerEmail: userEmail,
+      input,
+      attendees,
+      source: "GOOGLE",
+      sourceId: response.data.id || undefined,
+      meetingUrl,
+    })
+  }
+
   return NextResponse.json({
     success: true,
     provider: "google",
-    meetingUrl: response.data.hangoutLink || response.data.htmlLink || null,
+    meetingUrl,
     eventId: response.data.id,
     message: `Meeting created on Google Calendar with ${attendees.length} attendee(s).`,
   })
+}
+
+async function persistCalendarEvent(params: {
+  userId: string
+  organizerEmail: string
+  input: MeetingInput
+  attendees: Attendee[]
+  source: "GOOGLE" | "MICROSOFT"
+  sourceId?: string
+  meetingUrl: string | null
+}) {
+  try {
+    await prisma.calendarEvent.create({
+      data: {
+        userId: params.userId,
+        title: params.input.title,
+        description: params.input.description || null,
+        startTime: new Date(params.input.startTime),
+        endTime: new Date(params.input.endTime),
+        location: params.input.location || null,
+        timeZone: "UTC",
+        attendees: params.attendees.map((a) => ({
+          email: a.email,
+          name: a.name || a.email,
+          responseStatus: "needsAction",
+        })),
+        organizerEmail: params.organizerEmail,
+        meetingUrl: params.meetingUrl,
+        eventType: "MEETING",
+        isManaged: true,
+        source: params.source,
+        sourceId: params.sourceId || null,
+        syncStatus: "SYNCED",
+      },
+    })
+  } catch (error) {
+    // Don't fail the request if local mirroring fails — the meeting was created.
+    console.error("Failed to mirror meeting into ChronoFlow calendar:", error)
+  }
 }

@@ -67,6 +67,44 @@ async function getMicrosoftAccessToken(userEmail: string): Promise<string | null
   return tokenData.access_token
 }
 
+/**
+ * Build a name→email directory from people the user has already met with,
+ * using attendees stored on their ChronoFlow calendar events. Needs no extra
+ * Microsoft Graph scopes, so it works even when Teams directory access doesn't.
+ */
+export async function getCalendarContacts(userEmail: string): Promise<TeamDirectoryMember[]> {
+  const user = await prisma.user.findUnique({ where: { email: userEmail }, select: { id: true } })
+  if (!user) return []
+
+  const events = await prisma.calendarEvent.findMany({
+    where: { userId: user.id },
+    orderBy: { startTime: "desc" },
+    take: 400,
+    select: { attendees: true },
+  })
+
+  const byEmail = new Map<string, TeamDirectoryMember>()
+  for (const event of events) {
+    const attendees = event.attendees as unknown
+    if (!Array.isArray(attendees)) continue
+    for (const raw of attendees) {
+      const a = raw as Record<string, unknown>
+      const email = typeof a.email === "string" ? a.email : undefined
+      const name =
+        typeof a.name === "string" && a.name.trim()
+          ? a.name
+          : email
+      if (!email || !name) continue
+      const key = email.toLowerCase()
+      if (!byEmail.has(key)) {
+        byEmail.set(key, { id: key, displayName: name, email })
+      }
+    }
+  }
+
+  return Array.from(byEmail.values())
+}
+
 /** Fetch the user's Teams colleagues from Microsoft Graph. Returns [] if unavailable. */
 export async function getTeamDirectory(userEmail: string): Promise<TeamDirectoryMember[]> {
   const accessToken = await getMicrosoftAccessToken(userEmail)
@@ -142,7 +180,23 @@ export async function resolveAttendees(
   if (cleaned.length === 0) return []
 
   const needsDirectory = cleaned.some((a) => !EMAIL_REGEX.test(a))
-  const directory = needsDirectory ? await getTeamDirectory(userEmail) : []
+
+  // Combine all available sources (Teams members + people from past meetings).
+  // De-duplicate by email so a person known from both counts once.
+  let directory: TeamDirectoryMember[] = []
+  if (needsDirectory) {
+    const [teamMembers, calendarContacts] = await Promise.all([
+      getTeamDirectory(userEmail).catch(() => []),
+      getCalendarContacts(userEmail).catch(() => []),
+    ])
+    const byEmail = new Map<string, TeamDirectoryMember>()
+    for (const m of [...teamMembers, ...calendarContacts]) {
+      if (!m.email) continue
+      const key = m.email.toLowerCase()
+      if (!byEmail.has(key)) byEmail.set(key, m)
+    }
+    directory = Array.from(byEmail.values())
+  }
 
   return cleaned.map((query) => {
     if (EMAIL_REGEX.test(query)) {
