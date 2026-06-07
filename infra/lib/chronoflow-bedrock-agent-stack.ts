@@ -27,7 +27,7 @@ export class ChronoFlowBedrockAgentStack extends cdk.Stack {
 
     const foundationModel = new cdk.CfnParameter(this, "FoundationModelId", {
       type: "String",
-      default: "amazon.nova-lite-v1:0",
+      default: "openai.gpt-oss-120b-1:0",
       description: "Bedrock foundation model ID used by the ChronoFlow Bedrock Agent.",
     })
 

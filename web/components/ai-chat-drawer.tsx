@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { X, Send, Sparkles, Bot, User, Loader2, Zap, Mail, ExternalLink, CheckCircle2 } from 'lucide-react'
+import { X, Send, Sparkles, Bot, User, Loader2, Zap, ExternalLink, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
@@ -714,18 +714,6 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
 
           {/* Input */}
           <div className="cf-ai-drawer-input">
-            <div className="mb-2 flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-8 gap-1.5 text-xs"
-                onClick={() => setShowEmailSelector(true)}
-              >
-                <Mail className="h-3.5 w-3.5" />
-                Reply to email
-              </Button>
-            </div>
             <div className="relative">
               <Textarea
                 ref={textareaRef}
