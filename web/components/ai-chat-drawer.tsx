@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import EmailSelectorModal from '@/components/email-selector-modal'
 import EmailDraftComponent from '@/components/email-draft-component'
 import JiraTicketCreator from '@/components/jira-ticket-creator'
+import MeetingScheduler from '@/components/meeting-scheduler'
 import { AIConsentDialog } from '@/components/ai-consent-dialog'
 const USE_BEDROCK_AGENT = process.env.NEXT_PUBLIC_USE_BEDROCK_AGENT === 'true'
 
@@ -54,6 +55,19 @@ interface Message {
     url?: string
     showCreator?: boolean
   }
+  meeting?: {
+    title: string
+    description: string
+    location: string
+    startTime: string
+    endTime: string
+    attendees: { name: string; email: string | null; matched: boolean }[]
+    provider: 'google' | 'teams'
+    availableProviders: { google: boolean; teams: boolean }
+    showScheduler?: boolean
+    meetingUrl?: string | null
+    scheduledProvider?: string
+  }
 }
 
 type AgentClientAction =
@@ -76,6 +90,17 @@ type AgentClientAction =
       title: string
       description: string
       priority: string
+    }
+  | {
+      type: 'show_meeting_scheduler'
+      title: string
+      description: string
+      location: string
+      startTime: string
+      endTime: string
+      attendees: { name: string; email: string | null; matched: boolean }[]
+      provider: 'google' | 'teams'
+      availableProviders: { google: boolean; teams: boolean }
     }
   | {
       type: 'show_email_selector'
@@ -443,6 +468,29 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
       return
     }
 
+    if (clientAction.type === 'show_meeting_scheduler') {
+      const aiMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: message || "I've prepared your meeting. Review the details, pick a calendar, and confirm.",
+        timestamp: new Date(),
+        meeting: {
+          title: clientAction.title,
+          description: clientAction.description,
+          location: clientAction.location,
+          startTime: clientAction.startTime,
+          endTime: clientAction.endTime,
+          attendees: clientAction.attendees,
+          provider: clientAction.provider,
+          availableProviders: clientAction.availableProviders,
+          showScheduler: true,
+        },
+      }
+
+      setMessages(prev => [...prev, aiMessage])
+      return
+    }
+
     if (clientAction.type === 'show_email_selector') {
       setShowEmailSelector(true)
       setMessages(prev => [
@@ -689,6 +737,26 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
                             </div>
                           </div>
                         )}
+                      </div>
+                    )}
+
+                    {message.meeting?.showScheduler && message.role === 'assistant' && (
+                      <div className="mt-3 w-full max-w-full">
+                        <MeetingScheduler
+                          initialTitle={message.meeting.title}
+                          initialDescription={message.meeting.description}
+                          initialLocation={message.meeting.location}
+                          initialStartTime={message.meeting.startTime}
+                          initialEndTime={message.meeting.endTime}
+                          initialAttendees={message.meeting.attendees}
+                          initialProvider={message.meeting.provider}
+                          availableProviders={message.meeting.availableProviders}
+                          onClose={() => {
+                            setMessages(prev => prev.map(m =>
+                              m.id === message.id ? { ...m, meeting: undefined } : m
+                            ))
+                          }}
+                        />
                       </div>
                     )}
 

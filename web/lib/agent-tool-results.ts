@@ -172,5 +172,48 @@ function mapToolPayloadToClientAction(payload: Record<string, unknown>): {
     }
   }
 
+  if (action === "show_meeting_scheduler") {
+    if (
+      typeof payload.title === "string" &&
+      typeof payload.startTime === "string" &&
+      typeof payload.endTime === "string"
+    ) {
+      const rawAttendees = Array.isArray(payload.attendees) ? payload.attendees : []
+      const attendees = rawAttendees
+        .map((a) => a as Record<string, unknown>)
+        .map((a) => ({
+          name: typeof a.name === "string" ? a.name : "",
+          email: typeof a.email === "string" ? a.email : null,
+          matched: a.matched === true,
+        }))
+
+      const availRaw = (payload.availableProviders as Record<string, unknown>) || {}
+      const provider = payload.provider === "google" ? "google" : "teams"
+
+      const unresolved = attendees.filter((a) => !a.matched).map((a) => a.name)
+      const message = unresolved.length
+        ? `I've prepared your meeting. I couldn't find an email for ${unresolved.join(", ")} — add it below, then pick a calendar and confirm.`
+        : "I've prepared your meeting. Review the details, pick a calendar, and confirm."
+
+      return {
+        action: {
+          type: "show_meeting_scheduler",
+          title: payload.title,
+          description: typeof payload.description === "string" ? payload.description : "",
+          location: typeof payload.location === "string" ? payload.location : "",
+          startTime: payload.startTime,
+          endTime: payload.endTime,
+          attendees,
+          provider,
+          availableProviders: {
+            google: availRaw.google === true,
+            teams: availRaw.teams === true,
+          },
+        },
+        message,
+      }
+    }
+  }
+
   return null
 }

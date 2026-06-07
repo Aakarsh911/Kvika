@@ -1,0 +1,61 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "ChronoFlow Meeting Actions",
+    "version": "1.0.0",
+    "description": "Prepare meeting/calendar event drafts for user review in ChronoFlow."
+  },
+  "paths": {
+    "/schedule-meeting": {
+      "post": {
+        "operationId": "schedule_meeting",
+        "summary": "Prepare a meeting draft",
+        "description": "Prepare a meeting/calendar event draft for the user to review and confirm in ChronoFlow. Use when the user asks to schedule, set up, or book a meeting or event. ChronoFlow resolves attendee names to teammate emails, so pass names as the user said them. The user chooses Google or Teams calendar in the ChronoFlow UI.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "description": "Meeting title / subject."
+                  },
+                  "startTime": {
+                    "type": "string",
+                    "description": "ISO 8601 start datetime, e.g. 2026-06-08T14:00:00."
+                  },
+                  "durationMinutes": {
+                    "type": "integer",
+                    "description": "Meeting length in minutes. Defaults to 30 when omitted."
+                  },
+                  "attendees": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Attendee names or email addresses exactly as the user said them, e.g. [\"sarah\", \"john@acme.com\"]."
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Optional meeting agenda / description."
+                  },
+                  "location": {
+                    "type": "string",
+                    "description": "Optional location for an in-person meeting."
+                  }
+                },
+                "required": ["title", "startTime"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Meeting draft prepared" },
+          "400": { "description": "Missing meeting fields" },
+          "500": { "description": "Meeting preparation failed" }
+        }
+      }
+    }
+  }
+}

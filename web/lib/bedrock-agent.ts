@@ -118,6 +118,17 @@ export type AgentClientAction =
       priority: string
     }
   | {
+      type: "show_meeting_scheduler"
+      title: string
+      description: string
+      location: string
+      startTime: string
+      endTime: string
+      attendees: { name: string; email: string | null; matched: boolean }[]
+      provider: "google" | "teams"
+      availableProviders: { google: boolean; teams: boolean }
+    }
+  | {
       type: "show_email_selector"
     }
 
@@ -128,7 +139,7 @@ export function extractAgentClientAction(text: string): {
 } {
   const cleanedText = sanitizeAgentText(text)
   const parsed = parseJsonFromAgentText(cleanedText)
-  const rawAction = parsed?.clientAction ?? normalizeLegacyAction(parsed)
+  const rawAction: any = parsed?.clientAction ?? normalizeLegacyAction(parsed)
 
   if (!rawAction?.type) {
     return {
