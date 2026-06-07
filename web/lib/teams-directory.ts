@@ -4,7 +4,7 @@ import "isomorphic-fetch"
 import { prisma } from "@/lib/prisma"
 
 const MICROSOFT_SCOPE =
-  "openid email profile offline_access User.Read Calendars.Read Calendars.Read.Shared Calendars.ReadWrite Calendars.ReadWrite.Shared OnlineMeetings.Read OnlineMeetings.ReadWrite Mail.Read Mail.Send MailboxSettings.Read Chat.Read ChatMessage.Read ChannelMessage.Read.All Team.ReadBasic.All TeamMember.Read.All"
+  "openid email profile offline_access User.Read User.ReadBasic.All People.Read Calendars.Read Calendars.Read.Shared Calendars.ReadWrite Calendars.ReadWrite.Shared OnlineMeetings.Read OnlineMeetings.ReadWrite Mail.Read Mail.Send MailboxSettings.Read Chat.Read ChatMessage.Read ChannelMessage.Read.All Team.ReadBasic.All TeamMember.Read.All"
 
 export type TeamDirectoryMember = {
   id: string
@@ -109,7 +109,10 @@ export async function getCalendarContacts(userEmail: string): Promise<TeamDirect
 export async function getTeamDirectory(userEmail: string): Promise<TeamDirectoryMember[]> {
   const accessToken = await getMicrosoftAccessToken(userEmail)
   if (!accessToken) return []
+  return getTeamMembersWithToken(accessToken)
+}
 
+async function getTeamMembersWithToken(accessToken: string): Promise<TeamDirectoryMember[]> {
   const client = Client.init({ authProvider: (done) => done(null, accessToken) })
 
   let teams: Array<{ id: string }> = []
@@ -156,6 +159,80 @@ export async function getTeamDirectory(userEmail: string): Promise<TeamDirectory
   return members
 }
 
+/**
+ * Search the organization directory (and the user's relevant people) for a name
+ * via Microsoft Graph. Requires User.ReadBasic.All / People.Read scopes.
+ * Returns the best email match, or null.
+ */
+async function searchOrgDirectory(
+  accessToken: string,
+  name: string,
+): Promise<TeamDirectoryMember | null> {
+  const client = Client.init({ authProvider: (done) => done(null, accessToken) })
+  const escaped = name.replace(/'/g, "''")
+
+  const candidates: TeamDirectoryMember[] = []
+
+  // 1) Org directory search (matches anyone in the tenant by name).
+  try {
+    const resp = await client
+      .api("/users")
+      .header("ConsistencyLevel", "eventual")
+      .query({ $search: `"displayName:${name}"`, $count: "true" })
+      .select("displayName,mail,userPrincipalName")
+      .top(15)
+      .get()
+    for (const u of resp.value || []) {
+      const email = u.mail || u.userPrincipalName
+      if (email) candidates.push({ id: email, displayName: u.displayName || email, email })
+    }
+  } catch {
+    // Fall back to a prefix filter if $search isn't permitted.
+    try {
+      const resp = await client
+        .api("/users")
+        .filter(`startswith(displayName,'${escaped}')`)
+        .select("displayName,mail,userPrincipalName")
+        .top(15)
+        .get()
+      for (const u of resp.value || []) {
+        const email = u.mail || u.userPrincipalName
+        if (email) candidates.push({ id: email, displayName: u.displayName || email, email })
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  // 2) Relevant people the user interacts with (great for frequent contacts).
+  try {
+    const resp = await client
+      .api("/me/people")
+      .query({ $search: `"${name}"` })
+      .select("displayName,scoredEmailAddresses,userPrincipalName")
+      .top(10)
+      .get()
+    for (const p of resp.value || []) {
+      const email = p.scoredEmailAddresses?.[0]?.address || p.userPrincipalName
+      if (email) candidates.push({ id: email, displayName: p.displayName || email, email })
+    }
+  } catch {
+    // ignore
+  }
+
+  let best: TeamDirectoryMember | null = null
+  let bestScore = 0
+  for (const c of candidates) {
+    const score = scoreNameMatch(name, c.displayName)
+    if (score > bestScore) {
+      bestScore = score
+      best = c
+    }
+  }
+
+  return best && bestScore >= 50 ? best : null
+}
+
 function scoreNameMatch(query: string, name: string): number {
   const q = query.trim().toLowerCase()
   const n = name.trim().toLowerCase()
@@ -181,12 +258,14 @@ export async function resolveAttendees(
 
   const needsDirectory = cleaned.some((a) => !EMAIL_REGEX.test(a))
 
-  // Combine all available sources (Teams members + people from past meetings).
-  // De-duplicate by email so a person known from both counts once.
+  // Build a local directory from Teams members + people from past meetings,
+  // and keep the Microsoft token around for live org-directory lookups.
   let directory: TeamDirectoryMember[] = []
+  let accessToken: string | null = null
   if (needsDirectory) {
+    accessToken = await getMicrosoftAccessToken(userEmail)
     const [teamMembers, calendarContacts] = await Promise.all([
-      getTeamDirectory(userEmail).catch(() => []),
+      accessToken ? getTeamMembersWithToken(accessToken).catch(() => []) : Promise.resolve([]),
       getCalendarContacts(userEmail).catch(() => []),
     ])
     const byEmail = new Map<string, TeamDirectoryMember>()
@@ -198,9 +277,11 @@ export async function resolveAttendees(
     directory = Array.from(byEmail.values())
   }
 
-  return cleaned.map((query) => {
+  const results: ResolvedAttendee[] = []
+  for (const query of cleaned) {
     if (EMAIL_REGEX.test(query)) {
-      return { query, name: query, email: query, matched: true }
+      results.push({ query, name: query, email: query, matched: true })
+      continue
     }
 
     let best: TeamDirectoryMember | null = null
@@ -215,9 +296,21 @@ export async function resolveAttendees(
     }
 
     if (best && bestScore >= 50) {
-      return { query, name: best.displayName, email: best.email ?? null, matched: true }
+      results.push({ query, name: best.displayName, email: best.email ?? null, matched: true })
+      continue
     }
 
-    return { query, name: query, email: null, matched: false }
-  })
+    // Fall back to a live org-directory / people search.
+    if (accessToken) {
+      const orgMatch = await searchOrgDirectory(accessToken, query)
+      if (orgMatch?.email) {
+        results.push({ query, name: orgMatch.displayName, email: orgMatch.email, matched: true })
+        continue
+      }
+    }
+
+    results.push({ query, name: query, email: null, matched: false })
+  }
+
+  return results
 }

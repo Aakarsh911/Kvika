@@ -10,6 +10,9 @@ export async function GET() {
     "profile",
     "offline_access",
     "User.Read",
+    // Org directory + relevant people lookup (for attendee email resolution)
+    "User.ReadBasic.All",
+    "People.Read",
     // Calendar permissions: include ReadWrite so we can create focus blocks/events
     "Calendars.Read",
     "Calendars.Read.Shared",
@@ -26,6 +29,8 @@ export async function GET() {
     "Chat.Read",
     "ChatMessage.Read",
     "ChannelMessage.Read.All",
+    "Team.ReadBasic.All",
+    "TeamMember.Read.All",
   ].join(" "))
 
   if (!clientId || !redirectUri) {
