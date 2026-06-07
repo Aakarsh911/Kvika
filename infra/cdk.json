@@ -1,0 +1,6 @@
+{
+  "app": "npm run build && node dist/bin/chronoflow-infra.js",
+  "context": {
+    "@aws-cdk/core:newStyleStackSynthesis": true
+  }
+}

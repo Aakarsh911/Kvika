@@ -110,6 +110,11 @@ export function extractAgentClientAction(text: string): {
         : null
 
   if (!action) {
+    const looseAction = parseLooseClientAction(text)
+    if (looseAction) {
+      return looseAction
+    }
+
     const proseDraft = parseDraftFromAgentProse(text)
     if (proseDraft) {
       return proseDraft
@@ -170,6 +175,59 @@ function parseJsonFromAgentText(text: string): any | null {
   }
 
   return null
+}
+
+function parseLooseClientAction(text: string): {
+  message: string
+  clientAction: AgentClientAction
+} | null {
+  if (!text.includes("show_new_email_draft")) {
+    return null
+  }
+
+  const to = extractLooseStringField(text, "to")
+  const subject = extractLooseStringField(text, "subject")
+  const body = extractLooseStringField(text, "body")
+  const provider = extractLooseStringField(text, "provider")
+  const message = extractLooseStringField(text, "message")
+
+  if (!to || !subject || !body) {
+    return null
+  }
+
+  return {
+    message: message || `I've drafted an email to ${to}:`,
+    clientAction: {
+      type: "show_new_email_draft",
+      to,
+      subject,
+      body,
+      provider: provider === "outlook" ? "outlook" : "gmail",
+    },
+  }
+}
+
+function extractLooseStringField(text: string, key: string) {
+  const fieldStart = text.match(new RegExp(`"${key}"\\s*:\\s*"`))
+  if (fieldStart?.index == null) {
+    return null
+  }
+
+  const valueStart = fieldStart.index + fieldStart[0].length
+  const rest = text.slice(valueStart)
+  const nextField = rest.search(/"\s*,\s*"[A-Za-z_][A-Za-z0-9_]*"\s*:/)
+  const objectEnd = rest.search(/"\s*}\s*}?/)
+  const end = nextField !== -1 ? nextField : objectEnd
+
+  if (end === -1) {
+    return null
+  }
+
+  return rest
+    .slice(0, end)
+    .replace(/\\n/g, "\n")
+    .replace(/\\"/g, '"')
+    .trim()
 }
 
 function parseDraftFromAgentProse(text: string): {
