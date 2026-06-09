@@ -44,6 +44,42 @@ function normalizeStartTime(raw: string): Date {
   return fallback
 }
 
+const EXPLICIT_TIME_ZONE = /[zZ]|[+-]\d{2}:?\d{2}$/
+const LOCAL_DATE_TIME = /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/
+
+function normalizeLocalDateTime(raw: string): string | null {
+  const value = raw.trim()
+  if (EXPLICIT_TIME_ZONE.test(value)) return null
+
+  const match = value.match(LOCAL_DATE_TIME)
+  if (!match) return null
+
+  const [, year, month, day, hour, minute, second] = match
+  return `${year}-${month}-${day}T${hour}:${minute}${second ? `:${second}` : ""}`
+}
+
+function addMinutesToLocalDateTime(value: string, minutes: number): string {
+  const match = value.match(LOCAL_DATE_TIME)
+  if (!match) return new Date(new Date(value).getTime() + minutes * 60 * 1000).toISOString()
+
+  const [, year, month, day, hour, minute, second] = match.map(Number)
+  const date = new Date(Date.UTC(year, month - 1, day, hour, minute, second || 0))
+  date.setUTCMinutes(date.getUTCMinutes() + minutes)
+
+  const pad = (n: number) => String(n).padStart(2, "0")
+  return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}T${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())}`
+}
+
+function normalizeAttendeeText(raw: string): string {
+  let value = raw.trim()
+
+  // Models sometimes pass a single attendee as a list-looking string, e.g. "[aakarsh]".
+  value = value.replace(/^\[\s*/, "").replace(/\s*\]$/, "")
+  value = value.replace(/^['"]|['"]$/g, "").trim()
+
+  return value
+}
+
 async function getAvailableProviders(userEmail: string) {
   const user = await prisma.user.findUnique({
     where: { email: userEmail },
@@ -61,11 +97,22 @@ export async function buildMeetingDraft(input: PrepareMeetingInput): Promise<Mee
   const parsed = prepareMeetingInputSchema.parse(input)
 
   const durationMinutes = parsed.durationMinutes ?? 30
-  const start = normalizeStartTime(parsed.startTime)
-  const end = new Date(start.getTime() + durationMinutes * 60 * 1000)
+  const localStartTime = normalizeLocalDateTime(parsed.startTime)
+  let startTime: string
+  let endTime: string
 
-  const resolved: ResolvedAttendee[] = parsed.attendees?.length
-    ? await resolveAttendees(parsed.userEmail, parsed.attendees)
+  if (localStartTime) {
+    startTime = localStartTime
+    endTime = addMinutesToLocalDateTime(localStartTime, durationMinutes)
+  } else {
+    const start = normalizeStartTime(parsed.startTime)
+    startTime = start.toISOString()
+    endTime = new Date(start.getTime() + durationMinutes * 60 * 1000).toISOString()
+  }
+  const attendees = parsed.attendees?.map(normalizeAttendeeText).filter(Boolean) ?? []
+
+  const resolved: ResolvedAttendee[] = attendees.length
+    ? await resolveAttendees(parsed.userEmail, attendees)
     : []
 
   const availableProviders = await getAvailableProviders(parsed.userEmail)
@@ -76,8 +123,8 @@ export async function buildMeetingDraft(input: PrepareMeetingInput): Promise<Mee
     title: parsed.title.trim(),
     description: parsed.description?.trim() || "",
     location: parsed.location?.trim() || "",
-    startTime: start.toISOString(),
-    endTime: end.toISOString(),
+    startTime,
+    endTime,
     durationMinutes,
     attendees: resolved.map((a) => ({ name: a.name, email: a.email, matched: a.matched })),
     unresolvedAttendees: resolved.filter((a) => !a.matched).map((a) => a.query),

@@ -180,6 +180,8 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
           })),
           selectedEmail,
           sessionId: USE_BEDROCK_AGENT ? agentSessionIdRef.current : undefined,
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          currentTime: new Date().toISOString(),
         }),
       })
 
@@ -856,6 +858,8 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
                     })),
                     selectedEmail: email,
                     sessionId: agentSessionIdRef.current,
+                    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                    currentTime: new Date().toISOString(),
                   }),
                 })
 

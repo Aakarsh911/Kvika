@@ -13,6 +13,8 @@ type SelectedEmail = {
 export function buildAgentRuntimePrompt(params: {
   lastUserMessage: string
   selectedEmail?: SelectedEmail | null
+  timeZone?: string | null
+  currentTime?: string | null
 }) {
   const selectedEmailContext = params.selectedEmail
     ? `
@@ -24,5 +26,14 @@ Selected email in ChronoFlow UI:
 - from: ${params.selectedEmail.from.name} <${params.selectedEmail.from.address}>`
     : ""
 
-  return `${params.lastUserMessage.trim()}${selectedEmailContext}`
+  const timeContext = params.timeZone
+    ? `
+
+User time context:
+- timeZone: ${params.timeZone}
+- currentTime: ${params.currentTime || new Date().toISOString()}
+Interpret natural dates and times in this time zone unless the user says otherwise.`
+    : ""
+
+  return `${params.lastUserMessage.trim()}${selectedEmailContext}${timeContext}`
 }

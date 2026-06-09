@@ -18,6 +18,9 @@ const createMeetingSchema = z.object({
   location: z.string().max(500).optional(),
   startTime: z.string().min(1),
   endTime: z.string().min(1),
+  startTimeUtc: z.string().optional(),
+  endTimeUtc: z.string().optional(),
+  timeZone: z.string().min(1).optional(),
   isOnline: z.boolean().optional(),
   attendees: z
     .array(
@@ -60,6 +63,15 @@ export async function POST(request: NextRequest) {
 
 type MeetingInput = z.infer<typeof createMeetingSchema>
 type Attendee = { name?: string; email: string }
+
+function toProviderDateTime(value: string) {
+  // datetime-local inputs intentionally omit an offset; Graph/Google pair them
+  // with the explicit timeZone field so the user's wall-clock time is preserved.
+  if (!/[zZ]|[+-]\d{2}:?\d{2}$/.test(value)) {
+    return value.length === 16 ? `${value}:00` : value
+  }
+  return new Date(value).toISOString()
+}
 
 async function createTeamsMeeting(userEmail: string, input: MeetingInput, attendees: Attendee[]) {
   const user = await prisma.user.findUnique({
@@ -105,8 +117,8 @@ async function createTeamsMeeting(userEmail: string, input: MeetingInput, attend
   const eventPayload: Record<string, unknown> = {
     subject: input.title,
     body: { contentType: "HTML", content: input.description || "" },
-    start: { dateTime: new Date(input.startTime).toISOString(), timeZone: "UTC" },
-    end: { dateTime: new Date(input.endTime).toISOString(), timeZone: "UTC" },
+    start: { dateTime: toProviderDateTime(input.startTime), timeZone: input.timeZone || "UTC" },
+    end: { dateTime: toProviderDateTime(input.endTime), timeZone: input.timeZone || "UTC" },
     attendees: attendees.map((a) => ({
       emailAddress: { address: a.email, name: a.name || a.email },
       type: "required",
@@ -120,7 +132,7 @@ async function createTeamsMeeting(userEmail: string, input: MeetingInput, attend
 
   const event = await client
     .api("/me/events")
-    .header("Prefer", 'outlook.timezone="UTC"')
+    .header("Prefer", `outlook.timezone="${input.timeZone || "UTC"}"`)
     .post(eventPayload)
 
   const meetingUrl = event.onlineMeeting?.joinUrl || event.webLink || null
@@ -174,8 +186,8 @@ async function createGoogleMeeting(userEmail: string, input: MeetingInput, atten
     summary: input.title,
     description: input.description || undefined,
     location: !isOnline ? input.location || undefined : undefined,
-    start: { dateTime: new Date(input.startTime).toISOString(), timeZone: "UTC" },
-    end: { dateTime: new Date(input.endTime).toISOString(), timeZone: "UTC" },
+    start: { dateTime: toProviderDateTime(input.startTime), timeZone: input.timeZone || "UTC" },
+    end: { dateTime: toProviderDateTime(input.endTime), timeZone: input.timeZone || "UTC" },
     attendees: attendees.map((a) => ({ email: a.email, displayName: a.name })),
   }
 
@@ -233,10 +245,10 @@ async function persistCalendarEvent(params: {
         userId: params.userId,
         title: params.input.title,
         description: params.input.description || null,
-        startTime: new Date(params.input.startTime),
-        endTime: new Date(params.input.endTime),
+        startTime: new Date(params.input.startTimeUtc || params.input.startTime),
+        endTime: new Date(params.input.endTimeUtc || params.input.endTime),
         location: params.input.location || null,
-        timeZone: "UTC",
+        timeZone: params.input.timeZone || "UTC",
         attendees: params.attendees.map((a) => ({
           email: a.email,
           name: a.name || a.email,

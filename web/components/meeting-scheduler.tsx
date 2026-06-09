@@ -34,8 +34,15 @@ type PersonSuggestion = { name: string; email: string }
 
 const EMAIL_IN_TEXT = /<([^>]+)>|([^\s<>]+@[^\s<>]+\.[^\s<>]+)/
 
+function cleanAttendeeText(text: string): string {
+  let value = text.trim()
+  value = value.replace(/^\[\s*/, '').replace(/\s*\]$/, '')
+  value = value.replace(/^['"]|['"]$/g, '').trim()
+  return value
+}
+
 function parseAttendeeText(text: string): { name: string; email: string | null } {
-  const trimmed = text.trim()
+  const trimmed = cleanAttendeeText(text)
   const match = trimmed.match(EMAIL_IN_TEXT)
   const email = match ? (match[1] || match[2]) : null
   const name = email ? trimmed.replace(/<[^>]*>/, '').trim() || email : trimmed
@@ -51,12 +58,10 @@ function AttendeeRow({
   onChange: (patch: MeetingAttendee) => void
   onRemove: () => void
 }) {
-  const initial = attendee.email
-    ? attendee.name && attendee.name !== attendee.email
-      ? `${attendee.name} <${attendee.email}>`
-      : attendee.email
-    : attendee.name || ''
-  const [text, setText] = useState(initial)
+  const initial = attendee.name && attendee.name !== attendee.email
+    ? attendee.name
+    : attendee.email || attendee.name || ''
+  const [text, setText] = useState(cleanAttendeeText(initial))
   const [suggestions, setSuggestions] = useState<PersonSuggestion[]>([])
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -95,8 +100,7 @@ function AttendeeRow({
 
   const pick = (s: PersonSuggestion) => {
     justPicked.current = true
-    const display = `${s.name} <${s.email}>`
-    setText(display)
+    setText(s.name)
     setOpen(false)
     setSuggestions([])
     onChange({ name: s.name, email: s.email, matched: true })
@@ -131,6 +135,11 @@ function AttendeeRow({
           <Trash2 className="h-3.5 w-3.5 text-slate-400" />
         </Button>
       </div>
+      {attendee.email && (
+        <p className="mt-1 pl-1 text-[11px] text-[var(--cf-text-muted)]">
+          {attendee.email}
+        </p>
+      )}
 
       {open && suggestions.length > 0 && (
         <div className="absolute z-20 mt-1 w-full rounded-lg border border-[var(--cf-border)] bg-[var(--cf-bg)] shadow-xl overflow-hidden">
@@ -157,11 +166,6 @@ function isoToLocalInput(iso: string): string {
   if (Number.isNaN(d.getTime())) return ''
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
-
-function localInputToISO(local: string): string {
-  const d = new Date(local)
-  return Number.isNaN(d.getTime()) ? '' : d.toISOString()
 }
 
 export default function MeetingScheduler({
@@ -195,6 +199,7 @@ export default function MeetingScheduler({
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<{ meetingUrl: string | null; provider: string } | null>(null)
+  const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
 
   const providerOptions = useMemo(
     () =>
@@ -213,11 +218,11 @@ export default function MeetingScheduler({
     if (!title.trim()) return setError('Meeting title is required')
     if (!start || !end) return setError('Start and end time are required')
 
-    const startIso = localInputToISO(start)
-    const endIso = localInputToISO(end)
-    if (new Date(endIso) <= new Date(startIso)) {
+    if (new Date(end) <= new Date(start)) {
       return setError('End time must be after start time')
     }
+    const startUtc = new Date(start).toISOString()
+    const endUtc = new Date(end).toISOString()
 
     const validAttendees = attendees
       .filter((a) => a.email && a.email.trim())
@@ -234,8 +239,11 @@ export default function MeetingScheduler({
           title: title.trim(),
           description: description.trim() || undefined,
           location: location.trim() || undefined,
-          startTime: startIso,
-          endTime: endIso,
+          startTime: start,
+          endTime: end,
+          startTimeUtc: startUtc,
+          endTimeUtc: endUtc,
+          timeZone: userTimeZone,
           isOnline,
           attendees: validAttendees,
         }),

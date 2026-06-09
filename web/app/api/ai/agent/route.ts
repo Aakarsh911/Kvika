@@ -47,10 +47,14 @@ export async function POST(request: NextRequest) {
       messages,
       selectedEmail,
       sessionId,
+      timeZone,
+      currentTime,
     }: {
       messages?: ChatMessage[]
       selectedEmail?: SelectedEmail | null
       sessionId?: string
+      timeZone?: string
+      currentTime?: string
     } = await request.json()
 
     if (!messages || !Array.isArray(messages)) {
@@ -67,6 +71,8 @@ export async function POST(request: NextRequest) {
     const inputText = buildAgentRuntimePrompt({
       lastUserMessage: lastMessage.content,
       selectedEmail,
+      timeZone,
+      currentTime,
     })
 
     const promptSessionAttributes: Record<string, string> = {}
