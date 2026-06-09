@@ -83,22 +83,32 @@ function collectTracePayloads(trace: unknown): Record<string, unknown>[] {
 
 export function extractToolResultsFromTrace(traces: unknown[]): {
   clientAction: AgentClientAction | null
+  clientActions: AgentClientAction[]
   message: string | null
+  messages: string[]
 } {
   let clientAction: AgentClientAction | null = null
   let message: string | null = null
+  const clientActions: AgentClientAction[] = []
+  const messages: string[] = []
+  const seen = new Set<string>()
 
   for (const trace of traces) {
     for (const payload of collectTracePayloads(trace)) {
       const mapped = mapToolPayloadToClientAction(payload)
       if (mapped) {
+        const key = JSON.stringify(mapped.action)
+        if (seen.has(key)) continue
+        seen.add(key)
+        clientActions.push(mapped.action)
+        messages.push(mapped.message)
         clientAction = mapped.action
         message = mapped.message
       }
     }
   }
 
-  return { clientAction, message }
+  return { clientAction, clientActions, message, messages }
 }
 
 function mapToolPayloadToClientAction(payload: Record<string, unknown>): {

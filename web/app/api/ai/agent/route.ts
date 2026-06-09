@@ -91,6 +91,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         message: toolResult.message || result.text || "Done.",
         clientAction: toolResult.clientAction,
+        clientActions: toolResult.clientActions,
+        clientActionMessages: toolResult.messages,
         sessionId: result.sessionId,
       })
     }

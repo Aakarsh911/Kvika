@@ -201,6 +201,17 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
         agentSessionIdRef.current = data.sessionId
       }
       
+      if (Array.isArray(data.clientActions) && data.clientActions.length > 0) {
+        data.clientActions.forEach((action: AgentClientAction, index: number) => {
+          handleAgentClientAction(
+            action,
+            data.clientActionMessages?.[index] || data.message,
+            index,
+          )
+        })
+        return
+      }
+
       if (data.clientAction) {
         handleAgentClientAction(data.clientAction, data.message)
         return
@@ -413,10 +424,10 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
     }
   }
 
-  const handleAgentClientAction = (clientAction: AgentClientAction, message: string) => {
+  const handleAgentClientAction = (clientAction: AgentClientAction, message: string, offset = 0) => {
     if (clientAction.type === 'show_new_email_draft') {
       const aiMessage: Message = {
-        id: Date.now().toString(),
+        id: `${Date.now()}-${offset}`,
         role: 'assistant',
         content: message || `I've drafted an email to ${clientAction.to}:`,
         timestamp: new Date(),
@@ -434,7 +445,7 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
 
     if (clientAction.type === 'show_email_reply_draft') {
       const aiMessage: Message = {
-        id: Date.now().toString(),
+        id: `${Date.now()}-${offset}`,
         role: 'assistant',
         content: message || `I've drafted a reply to "${clientAction.subject}":`,
         timestamp: new Date(),
@@ -452,7 +463,7 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
 
     if (clientAction.type === 'show_jira_ticket_draft') {
       const aiMessage: Message = {
-        id: Date.now().toString(),
+        id: `${Date.now()}-${offset}`,
         role: 'assistant',
         content: message || "I'll help you create a Jira ticket. Please review and edit the details:",
         timestamp: new Date(),
@@ -470,7 +481,7 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
 
     if (clientAction.type === 'show_meeting_scheduler') {
       const aiMessage: Message = {
-        id: Date.now().toString(),
+        id: `${Date.now()}-${offset}`,
         role: 'assistant',
         content: message || "I've prepared your meeting. Review the details, pick a calendar, and confirm.",
         timestamp: new Date(),
@@ -496,7 +507,7 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
       setMessages(prev => [
         ...prev,
         {
-          id: Date.now().toString(),
+          id: `${Date.now()}-${offset}`,
           role: 'assistant',
           content: message || 'Please select an email to reply to.',
           timestamp: new Date(),
@@ -857,7 +868,15 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
                   agentSessionIdRef.current = data.sessionId
                 }
 
-                if (data.clientAction) {
+                if (Array.isArray(data.clientActions) && data.clientActions.length > 0) {
+                  data.clientActions.forEach((action: AgentClientAction, index: number) => {
+                    handleAgentClientAction(
+                      action,
+                      data.clientActionMessages?.[index] || data.message,
+                      index,
+                    )
+                  })
+                } else if (data.clientAction) {
                   handleAgentClientAction(data.clientAction, data.message)
                 } else {
                   const aiMessage: Message = {
