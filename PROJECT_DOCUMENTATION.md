@@ -7,7 +7,6 @@
 **Vision:** Help knowledge workers reclaim their time by intelligently managing their calendar, extracting tasks from communications, and providing deep insights into productivity.
 
 ---
-
 ## Table of Contents
 
 1. [Technology Stack](#technology-stack)
