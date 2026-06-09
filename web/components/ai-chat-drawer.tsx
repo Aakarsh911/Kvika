@@ -129,14 +129,28 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const agentSessionIdRef = useRef<string | null>(null)
+  const pendingScrollMessageIdRef = useRef<string | null>(null)
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (scrollRef.current) {
       setTimeout(() => {
-        if (scrollRef.current) {
-          scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+        const scrollContainer = scrollRef.current
+        if (!scrollContainer) return
+
+        const targetMessageId = pendingScrollMessageIdRef.current
+        if (targetMessageId) {
+          const target = scrollContainer.querySelector(
+            `[data-message-id="${targetMessageId}"]`,
+          ) as HTMLElement | null
+          if (target) {
+            target.scrollIntoView({ block: 'start' })
+          }
+          pendingScrollMessageIdRef.current = null
+          return
         }
+
+        scrollContainer.scrollTop = scrollContainer.scrollHeight
       }, 100)
     }
   }, [messages])
@@ -204,13 +218,7 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
       }
       
       if (Array.isArray(data.clientActions) && data.clientActions.length > 0) {
-        data.clientActions.forEach((action: AgentClientAction, index: number) => {
-          handleAgentClientAction(
-            action,
-            data.clientActionMessages?.[index] || data.message,
-            index,
-          )
-        })
+        handleAgentClientActions(data.clientActions, data.clientActionMessages, data.message)
         return
       }
 
@@ -426,10 +434,14 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
     }
   }
 
-  const handleAgentClientAction = (clientAction: AgentClientAction, message: string, offset = 0) => {
+  const buildAgentClientActionMessage = (
+    clientAction: AgentClientAction,
+    message: string,
+    id: string,
+  ): Message | null => {
     if (clientAction.type === 'show_new_email_draft') {
-      const aiMessage: Message = {
-        id: `${Date.now()}-${offset}`,
+      return {
+        id,
         role: 'assistant',
         content: message || `I've drafted an email to ${clientAction.to}:`,
         timestamp: new Date(),
@@ -440,14 +452,11 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
           provider: clientAction.provider || 'gmail',
         },
       }
-
-      setMessages(prev => [...prev, aiMessage])
-      return
     }
 
     if (clientAction.type === 'show_email_reply_draft') {
-      const aiMessage: Message = {
-        id: `${Date.now()}-${offset}`,
+      return {
+        id,
         role: 'assistant',
         content: message || `I've drafted a reply to "${clientAction.subject}":`,
         timestamp: new Date(),
@@ -458,14 +467,11 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
           subject: clientAction.subject,
         },
       }
-
-      setMessages(prev => [...prev, aiMessage])
-      return
     }
 
     if (clientAction.type === 'show_jira_ticket_draft') {
-      const aiMessage: Message = {
-        id: `${Date.now()}-${offset}`,
+      return {
+        id,
         role: 'assistant',
         content: message || "I'll help you create a Jira ticket. Please review and edit the details:",
         timestamp: new Date(),
@@ -476,14 +482,11 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
           showCreator: true,
         },
       }
-
-      setMessages(prev => [...prev, aiMessage])
-      return
     }
 
     if (clientAction.type === 'show_meeting_scheduler') {
-      const aiMessage: Message = {
-        id: `${Date.now()}-${offset}`,
+      return {
+        id,
         role: 'assistant',
         content: message || "I've prepared your meeting. Review the details, pick a calendar, and confirm.",
         timestamp: new Date(),
@@ -499,22 +502,51 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
           showScheduler: true,
         },
       }
-
-      setMessages(prev => [...prev, aiMessage])
-      return
     }
 
     if (clientAction.type === 'show_email_selector') {
       setShowEmailSelector(true)
-      setMessages(prev => [
-        ...prev,
-        {
-          id: `${Date.now()}-${offset}`,
-          role: 'assistant',
-          content: message || 'Please select an email to reply to.',
-          timestamp: new Date(),
-        },
-      ])
+      return {
+        id,
+        role: 'assistant',
+        content: message || 'Please select an email to reply to.',
+        timestamp: new Date(),
+      }
+    }
+
+    return null
+  }
+
+  const handleAgentClientActions = (
+    clientActions: AgentClientAction[],
+    messages?: string[],
+    fallbackMessage?: string,
+  ) => {
+    const baseId = Date.now()
+    const aiMessages = clientActions
+      .map((action, index) =>
+        buildAgentClientActionMessage(
+          action,
+          messages?.[index] || fallbackMessage || '',
+          `${baseId}-${index}`,
+        ),
+      )
+      .filter((message): message is Message => Boolean(message))
+
+    if (aiMessages.length === 0) return
+
+    pendingScrollMessageIdRef.current = aiMessages[0].id
+    setMessages(prev => [...prev, ...aiMessages])
+  }
+
+  const handleAgentClientAction = (clientAction: AgentClientAction, message: string, offset = 0) => {
+    const aiMessage = buildAgentClientActionMessage(
+      clientAction,
+      message,
+      `${Date.now()}-${offset}`,
+    )
+    if (aiMessage) {
+      setMessages(prev => [...prev, aiMessage])
     }
   }
 
@@ -593,6 +625,7 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
               {messages.map((message) => (
                 <div
                   key={message.id}
+                  data-message-id={message.id}
                   className={cn(
                     "flex gap-3",
                     message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
@@ -873,13 +906,7 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
                 }
 
                 if (Array.isArray(data.clientActions) && data.clientActions.length > 0) {
-                  data.clientActions.forEach((action: AgentClientAction, index: number) => {
-                    handleAgentClientAction(
-                      action,
-                      data.clientActionMessages?.[index] || data.message,
-                      index,
-                    )
-                  })
+                  handleAgentClientActions(data.clientActions, data.clientActionMessages, data.message)
                 } else if (data.clientAction) {
                   handleAgentClientAction(data.clientAction, data.message)
                 } else {
