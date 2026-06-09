@@ -12,8 +12,8 @@ export class ChronoFlowBedrockAgentStack extends cdk.Stack {
 
     const chronoflowInternalBaseUrl = new cdk.CfnParameter(this, "ChronoFlowInternalBaseUrl", {
       type: "String",
-      description:
-        "Public base URL that Lambda can use to call ChronoFlow, for example an ngrok or Vercel URL.",
+      default: "https://chronoflow.work",
+      description: "Public base URL that Lambda can use to call ChronoFlow (production deploy).",
       allowedPattern: "https://.+",
       constraintDescription: "Must be an HTTPS URL.",
     })
