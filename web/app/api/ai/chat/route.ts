@@ -98,7 +98,7 @@ const tools = [
       properties: {
         to: {
           type: 'string',
-          description: 'Recipient email address (e.g., "john@example.com"). If not provided by user, ask for it.',
+          description: 'Recipient name or email exactly as the user said it (e.g. "kinshuok", "john@example.com"). ChronoFlow resolves names automatically — do not ask for an email if the user only gave a name.',
         },
         subject: {
           type: 'string',
@@ -113,7 +113,7 @@ const tools = [
           description: 'Tone of the email: professional, casual, friendly, or formal. Default to professional.',
         },
       },
-      required: ['context'],
+      required: ['to', 'context'],
     },
   },
 ]

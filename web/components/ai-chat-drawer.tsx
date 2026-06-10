@@ -44,6 +44,8 @@ interface Message {
   newEmail?: {
     content: string
     to: string
+    toName?: string
+    recipientMatched?: boolean
     subject: string
     provider: 'gmail' | 'outlook'
   }
@@ -74,6 +76,8 @@ type AgentClientAction =
   | {
       type: 'show_new_email_draft'
       to: string
+      toName?: string
+      recipientMatched?: boolean
       subject: string
       body: string
       provider?: 'gmail' | 'outlook'
@@ -352,7 +356,7 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
         const aiMessage: Message = {
           id: Date.now().toString(),
           role: 'assistant',
-          content: 'Who would you like to send this email to? Please provide their email address.',
+          content: 'Who would you like to send this email to? You can give me a name — I will look up their address.',
           timestamp: new Date(),
         }
         setMessages(prev => [...prev, aiMessage])
@@ -387,19 +391,28 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
           return
         }
 
-        const { body: emailBody, subject: generatedSubject } = await response.json()
+        const { body: emailBody, subject: generatedSubject, to: resolvedTo, toName, recipientMatched } =
+          await response.json()
+
+        const displayName = toName || resolvedTo || to
 
         // Show draft in chat
         const aiMessage: Message = {
           id: Date.now().toString(),
           role: 'assistant',
-          content: message || `I've drafted ${tone === 'professional' ? 'a professional' : 'a ' + tone} email to ${to}:`,
+          content:
+            message ||
+            (recipientMatched
+              ? `I've drafted ${tone === 'professional' ? 'a professional' : 'a ' + tone} email to ${displayName}:`
+              : `I've drafted the email. Confirm ${displayName}'s address below before sending:`),
           timestamp: new Date(),
           newEmail: {
             content: emailBody,
-            to,
+            to: resolvedTo || '',
+            toName: toName || to,
+            recipientMatched,
             subject: subject || generatedSubject,
-            provider: 'gmail', // Default to Gmail, will select in send component
+            provider: 'gmail',
           },
         }
 
@@ -458,14 +471,21 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
     id: string,
   ): Message | null => {
     if (clientAction.type === 'show_new_email_draft') {
+      const displayName = clientAction.toName || clientAction.to || 'your recipient'
       return {
         id,
         role: 'assistant',
-        content: message || `I've drafted an email to ${clientAction.to}:`,
+        content:
+          message ||
+          (clientAction.recipientMatched
+            ? `I've drafted an email to ${displayName}:`
+            : `I've drafted the email. Confirm ${displayName}'s address below before sending:`),
         timestamp: new Date(),
         newEmail: {
           content: clientAction.body,
           to: clientAction.to,
+          toName: clientAction.toName,
+          recipientMatched: clientAction.recipientMatched,
           subject: clientAction.subject,
           provider: clientAction.provider || 'gmail',
         },
@@ -710,6 +730,7 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
                       <div className="mt-3 w-full max-w-full">
                         <EmailDraftComponent
                           to={message.newEmail.to}
+                          toName={message.newEmail.toName}
                           provider={message.newEmail.provider}
                           subject={message.newEmail.subject}
                           draftContent={message.newEmail.content}

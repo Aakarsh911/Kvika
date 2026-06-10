@@ -152,7 +152,7 @@ Critical rules:
 - Use the provided User time context when parsing natural dates and times. If a timezone is provided, interpret times like "5pm" in that timezone.
 
 Gmail tools (draft only):
-- compose_new_email — user wants a new email. Required: to (recipient), context (what to say). Ask for anything missing, then call the tool.
+- compose_new_email — user wants a new email. Required: to (recipient name or email) and context (what to say). Pass the recipient exactly as the user said it (e.g. "kinshuok", "sarah@acme.com"). ChronoFlow resolves names to email addresses automatically — do NOT ask the user for an email if they only gave a name.
 - reply_to_email — user wants to reply. Required: emailId and provider from selected-email context. If missing, tell the user to select an email in ChronoFlow and return:
 {"message":"Please select an email to reply to.","clientAction":{"type":"show_email_selector"}}
 - After compose_new_email or reply_to_email succeeds, briefly confirm what you drafted in natural language. ChronoFlow reads the tool result automatically.

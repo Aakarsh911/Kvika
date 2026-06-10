@@ -35,5 +35,9 @@ User time context:
 Interpret natural dates and times in this time zone unless the user says otherwise.`
     : ""
 
-  return `${params.lastUserMessage.trim()}${selectedEmailContext}${timeContext}`
+  return `${params.lastUserMessage.trim()}${selectedEmailContext}${timeContext}
+
+Recipient resolution:
+- If the user names someone without an email address, pass that name as "to" in compose_new_email.
+- Do NOT ask for an email address when the user already gave a name. ChronoFlow resolves names automatically.`
 }

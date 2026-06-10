@@ -100,6 +100,8 @@ export type AgentClientAction =
   | {
       type: "show_new_email_draft"
       to: string
+      toName?: string
+      recipientMatched?: boolean
       subject: string
       body: string
       provider?: "gmail" | "outlook"
@@ -150,16 +152,22 @@ export function extractAgentClientAction(text: string): {
 
   switch (rawAction.type) {
     case "show_new_email_draft":
-      if (
-        typeof rawAction.to === "string" &&
-        typeof rawAction.subject === "string" &&
-        typeof rawAction.body === "string"
-      ) {
+      if (typeof rawAction.subject === "string" && typeof rawAction.body === "string") {
+        const to = typeof rawAction.to === "string" ? rawAction.to : ""
+        const toName = typeof rawAction.toName === "string" ? rawAction.toName : to
+        const displayName = toName || to || "your recipient"
         return {
-          message: pickMessage(parsed, `I've drafted an email to ${rawAction.to}:`),
+          message: pickMessage(
+            parsed,
+            rawAction.recipientMatched
+              ? `I've drafted an email to ${displayName}:`
+              : `I've drafted the email. Confirm ${displayName}'s address below before sending:`,
+          ),
           clientAction: {
             type: "show_new_email_draft",
-            to: rawAction.to,
+            to,
+            toName,
+            recipientMatched: rawAction.recipientMatched === true,
             subject: rawAction.subject,
             body: rawAction.body,
             provider: rawAction.provider === "outlook" ? "outlook" : "gmail",
@@ -225,6 +233,8 @@ function normalizeLegacyAction(parsed: Record<string, unknown> | null): Record<s
     return {
       type: "show_new_email_draft",
       to: parsed.to,
+      toName: parsed.toName,
+      recipientMatched: parsed.recipientMatched,
       subject: parsed.subject,
       body: parsed.body,
       provider: parsed.provider,

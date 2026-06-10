@@ -265,7 +265,7 @@ export async function searchPeople(
   const byEmail = new Map<string, { member: TeamDirectoryMember; score: number }>()
   for (const member of [...teamMembers, ...calendarContacts, ...orgCandidates]) {
     if (!member.email) continue
-    const score = scoreNameMatch(q, member.displayName)
+    const score = scorePersonMatch(q, member)
     if (score <= 0) continue
     const key = member.email.toLowerCase()
     const existing = byEmail.get(key)
@@ -289,6 +289,20 @@ function scoreNameMatch(query: string, name: string): number {
   if (parts.includes(q)) return 90 // exact first/last name token
   if (parts.some((p) => p.startsWith(q))) return 70
   if (n.includes(q)) return 50
+  return 0
+}
+
+function scorePersonMatch(query: string, member: TeamDirectoryMember): number {
+  const nameScore = scoreNameMatch(query, member.displayName)
+  if (nameScore > 0) return nameScore
+
+  const email = member.email?.toLowerCase()
+  if (!email) return 0
+
+  const localPart = email.split("@")[0]
+  const q = query.trim().toLowerCase()
+  if (localPart === q) return 95
+  if (localPart.startsWith(q) || q.startsWith(localPart)) return 75
   return 0
 }
 
@@ -335,7 +349,7 @@ export async function resolveAttendees(
     let bestScore = 0
     for (const member of directory) {
       if (!member.email) continue
-      const score = scoreNameMatch(query, member.displayName)
+      const score = scorePersonMatch(query, member)
       if (score > bestScore) {
         bestScore = score
         best = member

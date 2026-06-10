@@ -24,11 +24,14 @@ export async function POST(request: NextRequest) {
     }
 
     const input = composeEmailInputSchema.parse(await request.json())
-    const draft = await composeEmailDraft(input)
+    const draft = await composeEmailDraft({ ...input, userEmail: session.user.email })
 
     return NextResponse.json({
       body: draft.body,
       subject: draft.subject,
+      to: draft.to,
+      toName: draft.toName,
+      recipientMatched: draft.recipientMatched,
     })
 
   } catch (error) {

@@ -10,7 +10,7 @@
       "post": {
         "operationId": "compose_new_email",
         "summary": "Draft a new email",
-        "description": "Generate a new email draft for user review. Use only when the user explicitly asks to write or compose a new email. If the recipient is missing, ask for it before calling this action.",
+        "description": "Generate a new email draft for user review. Use only when the user explicitly asks to write or compose a new email. Pass the recipient as a name OR email exactly as the user said it. ChronoFlow resolves names to email addresses automatically — do NOT ask the user for an email if they only gave a name.",
         "requestBody": {
           "required": true,
           "content": {
@@ -21,8 +21,7 @@
                 "properties": {
                   "to": {
                     "type": "string",
-                    "format": "email",
-                    "description": "Recipient email address."
+                    "description": "Recipient name or email address exactly as the user said it, e.g. \"kinshuok\" or \"john@acme.com\". ChronoFlow resolves names automatically."
                   },
                   "subject": {
                     "type": "string",
@@ -37,7 +36,7 @@
                     "enum": ["professional", "casual", "friendly", "formal"]
                   }
                 },
-                "required": ["context"]
+                "required": ["to", "context"]
               }
             }
           }

@@ -61,12 +61,27 @@ async function handleComposeNewEmail({ event, actionGroup, apiPath, httpMethod }
       body: {
         error: "Missing recipient",
         code: "MISSING_RECIPIENT",
-        message: "Ask the user for the recipient email address before drafting.",
+        message: "Ask the user who they want to email — a name is fine.",
+      },
+    })
+  }
+
+  const userEmail = getUserEmail(event)
+  if (!userEmail) {
+    return actionResponse({
+      actionGroup,
+      apiPath,
+      httpMethod,
+      statusCode: 400,
+      body: {
+        error: "Missing user context",
+        message: "I could not identify the signed-in user for this email.",
       },
     })
   }
 
   const { response, payload } = await callInternalApi("/api/internal/ai/compose-email", {
+    userEmail,
     to: input.to,
     subject: input.subject,
     context: input.context,

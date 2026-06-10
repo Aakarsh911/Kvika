@@ -6,12 +6,13 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
+import { PersonRecipientInput, type PersonRecipientValue } from '@/components/person-recipient-input'
 
 interface EmailDraftProps {
   emailId?: string // Optional for new emails
-  to?: string // For new emails
+  to?: string // For new emails (resolved email)
+  toName?: string // Display name when resolved from directory
   provider: 'gmail' | 'outlook'
   subject: string
   draftContent: string
@@ -23,6 +24,7 @@ interface EmailDraftProps {
 export default function EmailDraftComponent({
   emailId,
   to,
+  toName,
   provider,
   subject,
   draftContent,
@@ -33,16 +35,29 @@ export default function EmailDraftComponent({
   const [isEditing, setIsEditing] = useState(false)
   const [editedContent, setEditedContent] = useState(draftContent)
   const [editedSubject, setEditedSubject] = useState(subject)
-  const [editedTo, setEditedTo] = useState(to || '')
+  const [recipient, setRecipient] = useState<PersonRecipientValue>({
+    name: toName || to || '',
+    email: to || null,
+    matched: !!to,
+  })
   const [isSending, setIsSending] = useState(false)
   const { toast } = useToast()
 
   const handleSend = async () => {
+    if (isNewEmail && !recipient.email) {
+      toast({
+        title: 'Recipient required',
+        description: 'Pick someone from suggestions or enter their email address.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     setIsSending(true)
     try {
       const endpoint = isNewEmail ? '/api/mail/send-new' : '/api/mail/send-reply'
       const body = isNewEmail
-        ? { to: editedTo, subject: editedSubject, body: editedContent, provider }
+        ? { to: recipient.email, subject: editedSubject, body: editedContent, provider }
         : { emailId, provider, replyContent: editedContent }
 
       const response = await fetch(endpoint, {
@@ -57,7 +72,7 @@ export default function EmailDraftComponent({
 
       toast({
         title: '✅ Email Sent!',
-        description: 'Your reply has been sent successfully.',
+        description: isNewEmail ? 'Your email has been sent successfully.' : 'Your reply has been sent successfully.',
       })
 
       onSent?.()
@@ -112,21 +127,18 @@ export default function EmailDraftComponent({
         {/* Recipient (for new emails) & Subject */}
         {isNewEmail && (
           <>
-            {isEditing ? (
-              <div className="mb-2">
-                <label className="text-xs text-muted-foreground font-medium block mb-1">To:</label>
-                <Input
-                  value={editedTo}
-                  onChange={(e) => setEditedTo(e.target.value)}
-                  className="h-7 text-xs glass-medium"
-                  placeholder="recipient@example.com"
-                />
-              </div>
-            ) : (
-              <div className="text-xs mb-1">
-                <span className="text-muted-foreground font-medium">To: </span>
-                <span className="font-semibold">{editedTo}</span>
-              </div>
+            <div className="mb-2">
+              <label className="text-xs text-muted-foreground font-medium block mb-1">To:</label>
+              <PersonRecipientInput
+                value={recipient}
+                onChange={setRecipient}
+                inputClassName="glass-medium"
+              />
+            </div>
+            {!recipient.matched && recipient.name && (
+              <p className="mb-2 text-[11px] text-amber-600">
+                Pick a match from suggestions so we know where to send this.
+              </p>
             )}
           </>
         )}
@@ -192,7 +204,7 @@ export default function EmailDraftComponent({
           </Button>
           <Button
             onClick={handleSend}
-            disabled={isSending || !editedContent.trim() || (isNewEmail && (!editedTo.trim() || !editedSubject.trim()))}
+            disabled={isSending || !editedContent.trim() || (isNewEmail && (!recipient.email || !editedSubject.trim()))}
             size="sm"
             className="h-8 px-4 bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 hover:from-purple-700 hover:via-blue-700 hover:to-cyan-700 text-white shadow-lg shadow-purple-500/30"
           >

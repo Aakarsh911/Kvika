@@ -128,19 +128,27 @@ function mapToolPayloadToClientAction(payload: Record<string, unknown>): {
   const action = payload.action
   if (action === "show_new_email_draft") {
     if (
-      typeof payload.to === "string" &&
       typeof payload.subject === "string" &&
       typeof payload.body === "string"
     ) {
+      const to = typeof payload.to === "string" ? payload.to : ""
+      const toName = typeof payload.toName === "string" ? payload.toName : to
+      const recipientMatched = payload.recipientMatched === true
+      const displayName = toName || to || "your recipient"
+
       return {
         action: {
           type: "show_new_email_draft",
-          to: payload.to,
+          to,
+          toName,
+          recipientMatched,
           subject: payload.subject,
           body: payload.body,
           provider: payload.provider === "outlook" ? "outlook" : "gmail",
         },
-        message: `I've drafted an email to ${payload.to}:`,
+        message: recipientMatched
+          ? `I've drafted an email to ${displayName}:`
+          : `I've drafted the email. Pick ${displayName} from suggestions to confirm their address:`,
       }
     }
   }

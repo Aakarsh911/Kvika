@@ -6,7 +6,9 @@ import { requireAIConsent } from "@/lib/ai-consent"
 import { checkRateLimit } from "@/lib/rate-limit"
 import { buildAgentRuntimePrompt } from "@/lib/agent-runtime-prompt"
 import { extractToolResultsFromTrace } from "@/lib/agent-tool-results"
-import { extractAgentClientAction, invokeChronoFlowAgent } from "@/lib/bedrock-agent"
+import { detectComposeEmailIntent } from "@/lib/compose-intent"
+import { composeEmailDraft } from "@/lib/compose-email"
+import { extractAgentClientAction, invokeChronoFlowAgent, type AgentClientAction } from "@/lib/bedrock-agent"
 
 type ChatMessage = {
   role: "user" | "assistant"
@@ -80,6 +82,18 @@ export async function POST(request: NextRequest) {
 
     const agentSessionId = sanitizeSessionId(sessionId) || randomUUID()
 
+    const composeIntent = detectComposeEmailIntent(lastMessage.content)
+    if (composeIntent) {
+      const draft = await composeEmailDraft({
+        userEmail: session.user.email,
+        to: composeIntent.to,
+        context: composeIntent.context,
+        tone: composeIntent.tone,
+      })
+      const built = buildNewEmailClientResponse(draft, agentSessionId)
+      return NextResponse.json(built)
+    }
+
     const inputText = buildAgentRuntimePrompt({
       lastUserMessage: lastMessage.content,
       selectedEmail,
@@ -139,4 +153,34 @@ function sanitizeSessionId(sessionId?: string) {
   const trimmed = sessionId.trim()
   if (!/^[A-Za-z0-9._:-]{2,100}$/.test(trimmed)) return null
   return trimmed
+}
+
+function buildNewEmailClientResponse(
+  draft: Awaited<ReturnType<typeof composeEmailDraft>>,
+  sessionId: string,
+) {
+  const displayName = draft.toName || draft.to || "your recipient"
+  const clientAction: AgentClientAction = {
+    type: "show_new_email_draft",
+    to: draft.to ?? "",
+    toName: draft.toName,
+    recipientMatched: draft.recipientMatched,
+    subject: draft.subject,
+    body: draft.body,
+    provider: "gmail",
+  }
+
+  return {
+    message: draft.recipientMatched
+      ? `I've drafted an email to ${displayName}:`
+      : `I've drafted the email. Pick ${displayName} from suggestions to confirm their address:`,
+    clientAction,
+    clientActions: [clientAction],
+    clientActionMessages: [
+      draft.recipientMatched
+        ? `I've drafted an email to ${displayName}:`
+        : `I've drafted the email. Pick ${displayName} from suggestions to confirm their address:`,
+    ],
+    sessionId,
+  }
 }

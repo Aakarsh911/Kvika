@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { ZodError } from "zod"
+import { z } from "zod"
 import { composeEmailDraft, composeEmailInputSchema } from "@/lib/compose-email"
 import { isInternalAgentAuthorized } from "@/lib/internal-agent-auth"
+
+const internalComposeSchema = composeEmailInputSchema.extend({
+  userEmail: z.string().email(),
+})
 
 export async function POST(request: NextRequest) {
   if (!isInternalAgentAuthorized(request)) {
@@ -10,14 +15,14 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const input = composeEmailInputSchema.parse(body)
+    const input = internalComposeSchema.parse(body)
 
     if (!input.to) {
       return NextResponse.json(
         {
           error: "Missing recipient",
           code: "MISSING_RECIPIENT",
-          message: "Ask the user for the recipient email address before drafting.",
+          message: "Ask the user who they want to email — a name is fine.",
         },
         { status: 400 }
       )
@@ -27,7 +32,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       action: "show_new_email_draft",
-      to: draft.to,
+      to: draft.to ?? "",
+      toName: draft.toName,
+      recipientMatched: draft.recipientMatched,
       subject: draft.subject,
       body: draft.body,
       tone: draft.tone,
