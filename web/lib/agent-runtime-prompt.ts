@@ -37,7 +37,8 @@ Interpret natural dates and times in this time zone unless the user says otherwi
 
   return `${params.lastUserMessage.trim()}${selectedEmailContext}${timeContext}
 
-Recipient resolution:
-- If the user names someone without an email address, pass that name as "to" in compose_new_email.
-- Do NOT ask for an email address when the user already gave a name. ChronoFlow resolves names automatically.`
+Tool orchestration:
+- If the user asks for multiple actions in one message, call every required tool before your final reply.
+- Do not stop after the first tool — ChronoFlow renders each tool result as a separate draft card.
+- Pass people by name when the user only gave a name; ChronoFlow resolves names to email addresses.`
 }

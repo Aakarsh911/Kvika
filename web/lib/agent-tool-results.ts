@@ -1,4 +1,5 @@
 import type { AgentClientAction } from "@/lib/bedrock-agent"
+import { mapToolPayloadToClientAction } from "@/lib/agent-tool-mappers"
 
 function parseJsonLoose(value: string): Record<string, unknown> | null {
   const trimmed = value.trim()
@@ -41,25 +42,80 @@ function unwrapToolPayload(raw: Record<string, unknown>): Record<string, unknown
     return parseJsonLoose(raw.body)
   }
 
+  if (typeof raw.text === "string") {
+    return parseJsonLoose(raw.text)
+  }
+
   return null
 }
 
-function collectTracePayloads(trace: unknown): Record<string, unknown>[] {
+/** Stable id for a tool payload so duplicate trace nodes don't render twice. */
+export function toolResultFingerprint(payload: Record<string, unknown>): string {
+  if (payload.code === "MISSING_EMAIL") return "MISSING_EMAIL"
+
+  const action = payload.action
+  if (typeof action !== "string") {
+    return JSON.stringify(payload)
+  }
+
+  switch (action) {
+    case "show_new_email_draft":
+      return `${action}|${payload.to}|${payload.subject}|${String(payload.body ?? "").slice(0, 200)}`
+    case "show_email_reply_draft":
+      return `${action}|${payload.emailId}|${payload.subject}|${String(payload.body ?? "").slice(0, 200)}`
+    case "show_jira_ticket_draft":
+      return `${action}|${payload.title}|${payload.description}`
+    case "show_meeting_scheduler":
+      return `${action}|${payload.title}|${payload.startTime}|${payload.endTime}|${JSON.stringify(payload.attendees ?? [])}`
+    default:
+      return `${action}|${JSON.stringify(payload)}`
+  }
+}
+
+function pushUniquePayload(
+  payload: Record<string, unknown>,
+  payloads: Record<string, unknown>[],
+  seenFingerprints: Set<string>,
+) {
+  const fingerprint = toolResultFingerprint(payload)
+  if (seenFingerprints.has(fingerprint)) return
+  seenFingerprints.add(fingerprint)
+  payloads.push(payload)
+}
+
+function pushUniqueInvocationText(
+  text: string,
+  payloads: Record<string, unknown>[],
+  seenInvocationText: Set<string>,
+  seenFingerprints: Set<string>,
+) {
+  const normalized = text.trim()
+  if (!normalized || seenInvocationText.has(normalized)) return
+  seenInvocationText.add(normalized)
+
+  const parsed = parseJsonLoose(normalized)
+  const unwrapped = parsed ? unwrapToolPayload(parsed) : null
+  if (unwrapped) pushUniquePayload(unwrapped, payloads, seenFingerprints)
+}
+
+function collectTracePayloads(
+  trace: unknown,
+  seenInvocationText: Set<string>,
+  seenFingerprints: Set<string>,
+): Record<string, unknown>[] {
   const payloads: Record<string, unknown>[] = []
-  const seen = new Set<object>()
+  const seenNodes = new Set<object>()
 
   const walk = (node: unknown) => {
     if (!node || typeof node !== "object") return
-    if (seen.has(node)) return
-    seen.add(node)
+    if (seenNodes.has(node)) return
+    seenNodes.add(node)
 
     const obj = node as Record<string, unknown>
 
     const invocationOutput = obj.actionGroupInvocationOutput as { text?: string } | undefined
     if (invocationOutput?.text) {
-      const parsed = parseJsonLoose(invocationOutput.text)
-      const unwrapped = parsed ? unwrapToolPayload(parsed) : null
-      if (unwrapped) payloads.push(unwrapped)
+      pushUniqueInvocationText(invocationOutput.text, payloads, seenInvocationText, seenFingerprints)
     }
 
     const responseBody = obj.responseBody as Record<string, unknown> | undefined
@@ -67,7 +123,7 @@ function collectTracePayloads(trace: unknown): Record<string, unknown>[] {
     if (jsonBody?.body) {
       const parsed = parseJsonLoose(jsonBody.body)
       const unwrapped = parsed ? unwrapToolPayload(parsed) : null
-      if (unwrapped) payloads.push(unwrapped)
+      if (unwrapped) pushUniquePayload(unwrapped, payloads, seenFingerprints)
     }
 
     for (const value of Object.values(obj)) {
@@ -87,151 +143,23 @@ export function extractToolResultsFromTrace(traces: unknown[]): {
   message: string | null
   messages: string[]
 } {
-  let clientAction: AgentClientAction | null = null
-  let message: string | null = null
   const clientActions: AgentClientAction[] = []
   const messages: string[] = []
-  const seen = new Set<string>()
+  const seenInvocationText = new Set<string>()
+  const seenFingerprints = new Set<string>()
 
   for (const trace of traces) {
-    for (const payload of collectTracePayloads(trace)) {
+    for (const payload of collectTracePayloads(trace, seenInvocationText, seenFingerprints)) {
       const mapped = mapToolPayloadToClientAction(payload)
-      if (mapped) {
-        const key = JSON.stringify(mapped.action)
-        if (seen.has(key)) continue
-        seen.add(key)
-        clientActions.push(mapped.action)
-        messages.push(mapped.message)
-        clientAction = mapped.action
-        message = mapped.message
-      }
+      if (!mapped) continue
+      clientActions.push(mapped.action)
+      messages.push(mapped.message)
     }
   }
+
+  const clientAction = clientActions[clientActions.length - 1] ?? null
+  const message =
+    messages.length > 1 ? messages.join(" ") : messages[messages.length - 1] ?? null
 
   return { clientAction, clientActions, message, messages }
-}
-
-function mapToolPayloadToClientAction(payload: Record<string, unknown>): {
-  action: AgentClientAction
-  message: string
-} | null {
-  if (payload.code === "MISSING_EMAIL") {
-    return {
-      action: { type: "show_email_selector" },
-      message:
-        typeof payload.message === "string"
-          ? payload.message
-          : "Please select an email to reply to.",
-    }
-  }
-
-  const action = payload.action
-  if (action === "show_new_email_draft") {
-    if (
-      typeof payload.subject === "string" &&
-      typeof payload.body === "string"
-    ) {
-      const to = typeof payload.to === "string" ? payload.to : ""
-      const toName = typeof payload.toName === "string" ? payload.toName : to
-      const recipientMatched = payload.recipientMatched === true
-      const displayName = toName || to || "your recipient"
-
-      return {
-        action: {
-          type: "show_new_email_draft",
-          to,
-          toName,
-          recipientMatched,
-          subject: payload.subject,
-          body: payload.body,
-          provider: payload.provider === "outlook" ? "outlook" : "gmail",
-        },
-        message: recipientMatched
-          ? `I've drafted an email to ${displayName}:`
-          : `I've drafted the email. Pick ${displayName} from suggestions to confirm their address:`,
-      }
-    }
-  }
-
-  if (action === "show_email_reply_draft") {
-    if (
-      typeof payload.emailId === "string" &&
-      (payload.provider === "gmail" || payload.provider === "outlook") &&
-      typeof payload.subject === "string" &&
-      typeof payload.body === "string"
-    ) {
-      return {
-        action: {
-          type: "show_email_reply_draft",
-          emailId: payload.emailId,
-          provider: payload.provider,
-          subject: payload.subject,
-          body: payload.body,
-        },
-        message: `I've drafted a reply to "${payload.subject}":`,
-      }
-    }
-  }
-
-  if (action === "show_jira_ticket_draft") {
-    if (typeof payload.title === "string" && typeof payload.description === "string") {
-      return {
-        action: {
-          type: "show_jira_ticket_draft",
-          title: payload.title,
-          description: payload.description,
-          priority:
-            payload.priority === "High" || payload.priority === "Low"
-              ? payload.priority
-              : "Medium",
-        },
-        message: "I'll help you create a Jira ticket. Please review and edit the details:",
-      }
-    }
-  }
-
-  if (action === "show_meeting_scheduler") {
-    if (
-      typeof payload.title === "string" &&
-      typeof payload.startTime === "string" &&
-      typeof payload.endTime === "string"
-    ) {
-      const rawAttendees = Array.isArray(payload.attendees) ? payload.attendees : []
-      const attendees = rawAttendees
-        .map((a) => a as Record<string, unknown>)
-        .map((a) => ({
-          name: typeof a.name === "string" ? a.name : "",
-          email: typeof a.email === "string" ? a.email : null,
-          matched: a.matched === true,
-        }))
-
-      const availRaw = (payload.availableProviders as Record<string, unknown>) || {}
-      const provider = payload.provider === "google" ? "google" : "teams"
-
-      const unresolved = attendees.filter((a) => !a.matched).map((a) => a.name)
-      const message = unresolved.length
-        ? `I've prepared your meeting. I couldn't find an email for ${unresolved.join(", ")} — add it below, then pick a calendar and confirm.`
-        : "I've prepared your meeting. Review the details, pick a calendar, and confirm."
-
-      return {
-        action: {
-          type: "show_meeting_scheduler",
-          title: payload.title,
-          description: typeof payload.description === "string" ? payload.description : "",
-          location: typeof payload.location === "string" ? payload.location : "",
-          startTime: payload.startTime,
-          endTime: payload.endTime,
-          attendees,
-          provider,
-          availableProviders: {
-            google: availRaw.google === true,
-            teams: availRaw.teams === true,
-          },
-        },
-        message,
-      }
-    }
-  }
-
-  return null
 }

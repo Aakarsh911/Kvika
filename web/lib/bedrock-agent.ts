@@ -216,6 +216,41 @@ export function extractAgentClientAction(text: string): {
         }
       }
       break
+    case "show_meeting_scheduler":
+      if (
+        typeof rawAction.title === "string" &&
+        typeof rawAction.startTime === "string" &&
+        typeof rawAction.endTime === "string"
+      ) {
+        const rawAttendees = Array.isArray(rawAction.attendees) ? rawAction.attendees : []
+        const attendees = rawAttendees.map((a: Record<string, unknown>) => ({
+          name: typeof a.name === "string" ? a.name : "",
+          email: typeof a.email === "string" ? a.email : null,
+          matched: a.matched === true,
+        }))
+        const availRaw = rawAction.availableProviders || {}
+        return {
+          message: pickMessage(
+            parsed,
+            "I've prepared your meeting. Review the details, pick a calendar, and confirm.",
+          ),
+          clientAction: {
+            type: "show_meeting_scheduler",
+            title: rawAction.title,
+            description: typeof rawAction.description === "string" ? rawAction.description : "",
+            location: typeof rawAction.location === "string" ? rawAction.location : "",
+            startTime: rawAction.startTime,
+            endTime: rawAction.endTime,
+            attendees,
+            provider: rawAction.provider === "google" ? "google" : "teams",
+            availableProviders: {
+              google: availRaw.google === true,
+              teams: availRaw.teams === true,
+            },
+          },
+        }
+      }
+      break
     case "show_email_selector":
       return {
         message: pickMessage(parsed, "Please select an email to reply to."),
@@ -257,6 +292,20 @@ function normalizeLegacyAction(parsed: Record<string, unknown> | null): Record<s
       title: parsed.title,
       description: parsed.description,
       priority: parsed.priority,
+    }
+  }
+
+  if (parsed.action === "show_meeting_scheduler") {
+    return {
+      type: "show_meeting_scheduler",
+      title: parsed.title,
+      description: parsed.description,
+      location: parsed.location,
+      startTime: parsed.startTime,
+      endTime: parsed.endTime,
+      attendees: parsed.attendees,
+      provider: parsed.provider,
+      availableProviders: parsed.availableProviders,
     }
   }
 

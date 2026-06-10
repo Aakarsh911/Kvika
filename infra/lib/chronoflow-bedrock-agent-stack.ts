@@ -148,7 +148,7 @@ Critical rules:
 - Ask follow-up questions in plain natural language when required fields are missing.
 - As soon as you have enough information, CALL THE TOOL immediately. Do not ask for confirmation first.
 - Tools draft content only — never send email or create Jira issues directly.
-- If the user requests multiple actions in one message, call every needed tool in a sensible order. ChronoFlow can render multiple draft actions for the user to review.
+- MULTI-TOOL: If the user requests multiple actions in one message (e.g. email someone AND schedule a meeting), you MUST call every applicable tool in that same turn before replying. Do not stop after the first tool. ChronoFlow renders each tool result separately.
 - Use the provided User time context when parsing natural dates and times. If a timezone is provided, interpret times like "5pm" in that timezone.
 
 Gmail tools (draft only):
