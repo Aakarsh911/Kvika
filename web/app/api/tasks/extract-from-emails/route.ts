@@ -6,6 +6,7 @@ import { extractTasksFromEmailsBatch } from '@/lib/gemini'
 import { deleteCache } from '@/lib/redis'
 import { prisma } from '@/lib/prisma'
 import { requireAIConsent } from '@/lib/ai-consent'
+import { checkRateLimit } from '@/lib/rate-limit'
 import { getAIProvider } from '@/lib/ai'
 
 /**
@@ -24,6 +25,17 @@ export async function POST(request: NextRequest) {
     
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const rate = await checkRateLimit(`ai:extract-emails:${session.user.email}`, {
+      limit: 6,
+      windowSeconds: 60,
+    })
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests', message: `Slow down — try again in ${rate.retryAfterSeconds}s.` },
+        { status: 429 },
+      )
     }
 
     // Get user from database

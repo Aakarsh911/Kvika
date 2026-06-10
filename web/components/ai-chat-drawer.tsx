@@ -200,16 +200,24 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
       })
 
       if (!response.ok) {
-        const error = await response.json()
-        
-        // Check if consent is required
+        const error = await response.json().catch(() => ({}))
+
         if (error.code === 'AI_CONSENT_REQUIRED') {
           setPendingMessage(input)
           setConsentDialogOpen(true)
           return
         }
-        
-        throw new Error('AI request failed')
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: apiErrorMessage(response.status, error),
+            timestamp: new Date(),
+          },
+        ])
+        return
       }
 
       const data = await response.json()
@@ -366,7 +374,17 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
         })
 
         if (!response.ok) {
-          throw new Error('Failed to compose email')
+          const error = await response.json().catch(() => ({}))
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: Date.now().toString(),
+              role: 'assistant',
+              content: apiErrorMessage(response.status, error),
+              timestamp: new Date(),
+            },
+          ])
+          return
         }
 
         const { body: emailBody, subject: generatedSubject } = await response.json()
@@ -897,7 +915,17 @@ export default function AIChatDrawer({ isOpen, onClose }: AIChatDrawerProps) {
                 })
 
                 if (!response.ok) {
-                  throw new Error('AI agent request failed')
+                  const error = await response.json().catch(() => ({}))
+                  setMessages((prev) => [
+                    ...prev,
+                    {
+                      id: Date.now().toString(),
+                      role: 'assistant',
+                      content: apiErrorMessage(response.status, error),
+                      timestamp: new Date(),
+                    },
+                  ])
+                  return
                 }
 
                 const data = await response.json()
@@ -1007,5 +1035,22 @@ function createAgentSessionId() {
   }
 
   return `chat-${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
+function apiErrorMessage(
+  status: number,
+  error: { message?: string; error?: string },
+): string {
+  if (status === 429) {
+    return (
+      error.message?.trim() ||
+      "You're sending messages too quickly. Please wait a moment and try again."
+    )
+  }
+  return (
+    error.message?.trim() ||
+    error.error?.trim() ||
+    'Sorry, I encountered an error. Please try again.'
+  )
 }
 

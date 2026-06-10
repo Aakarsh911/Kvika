@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { requireAIConsent } from "@/lib/ai-consent"
+import { checkRateLimit } from "@/lib/rate-limit"
 import { generateReplyDraft } from "@/lib/reply-email"
 
 export async function POST(request: NextRequest) {
@@ -9,6 +10,17 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions)
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const rate = await checkRateLimit(`ai:generate-reply:${session.user.email}`, {
+      limit: 20,
+      windowSeconds: 60,
+    })
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: "Too many requests", message: `Slow down — try again in ${rate.retryAfterSeconds}s.` },
+        { status: 429 },
+      )
     }
 
     try {

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { chatWithTools } from '@/lib/ai'
 import { requireAIConsent } from '@/lib/ai-consent'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 // Define available tools for the AI using Bedrock's tool calling (JSON Schema)
 const tools = [
@@ -122,6 +123,17 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions)
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const rate = await checkRateLimit(`ai:chat:${session.user.email}`, {
+      limit: 20,
+      windowSeconds: 60,
+    })
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests', message: `Slow down — try again in ${rate.retryAfterSeconds}s.` },
+        { status: 429 },
+      )
     }
 
     // Check AI consent

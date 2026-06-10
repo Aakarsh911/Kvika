@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth"
 
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { requireAIConsent } from "@/lib/ai-consent"
+import { checkRateLimit } from "@/lib/rate-limit"
 import { prisma } from "@/lib/prisma"
 import { invalidateCache } from "@/lib/redis"
 import { runTeamsExtractionPipeline } from "@/lib/task-extraction/pipeline-teams"
@@ -17,6 +18,17 @@ export async function POST(request: NextRequest) {
 
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const rate = await checkRateLimit(`ai:extract-teams:${session.user.email}`, {
+      limit: 6,
+      windowSeconds: 60,
+    })
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: "Too many requests", message: `Slow down — try again in ${rate.retryAfterSeconds}s.` },
+        { status: 429 },
+      )
     }
 
     const user = await prisma.user.findUnique({
