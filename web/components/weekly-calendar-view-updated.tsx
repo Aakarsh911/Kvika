@@ -28,6 +28,8 @@ import { format, startOfWeek, endOfWeek, addWeeks, subWeeks, eachDayOfInterval, 
 import { CalendarLoadingSkeleton } from "./calendar-loading-skeleton"
 import { getCalendarColorFromId, getContrastTextColor } from "@/lib/calendar-colors"
 import { EventCreationDialog } from "./event-creation-dialog"
+import { EventEditDialog, type EditableCalendarEvent } from "./event-edit-dialog"
+import { useToast } from "@/hooks/use-toast"
 
 interface CalendarEvent {
   id: string
@@ -101,7 +103,10 @@ export function WeeklyCalendarView() {
   const [dragEnd, setDragEnd] = useState<{ day: Date; position: number } | null>(null)
   const [showEventDialog, setShowEventDialog] = useState(false)
   const [newEventTime, setNewEventTime] = useState<{ start: Date; end: Date; day: Date } | null>(null)
+  const [showEditDialog, setShowEditDialog] = useState(false)
+  const [selectedEvent, setSelectedEvent] = useState<EditableCalendarEvent | null>(null)
   const calendarGridRef = useRef<HTMLDivElement>(null)
+  const { toast } = useToast()
 
   const weekStart = useMemo(() => startOfWeek(currentWeek, { weekStartsOn: 1 }), [currentWeek])
   const weekEnd = useMemo(() => endOfWeek(currentWeek, { weekStartsOn: 1 }), [currentWeek])
@@ -543,6 +548,19 @@ export function WeeklyCalendarView() {
     fetchCalendarEvents(false, false)
   }, [fetchCalendarEvents])
 
+  const handleEventClick = useCallback((event: CalendarEvent) => {
+    setSelectedEvent(event)
+    setShowEditDialog(true)
+  }, [])
+
+  const handleEventUpdated = useCallback(() => {
+    fetchCalendarEvents(false, false)
+    toast({
+      title: "Event updated",
+      description: "Your calendar change has been saved.",
+    })
+  }, [fetchCalendarEvents, toast])
+
   if (loading && !hasLoadedRef.current) {
     return <CalendarLoadingSkeleton />
   }
@@ -795,6 +813,7 @@ export function WeeklyCalendarView() {
                         className="text-xs p-1 rounded border-l-4 bg-background shadow-sm hover:shadow-md transition-shadow cursor-pointer truncate"
                         style={{ borderLeftColor: eventColor }}
                         title={event.title || event.summary}
+                        onClick={() => handleEventClick(event)}
                       >
                         {event.isManaged && <Zap className="w-3 h-3 inline mr-1 text-blue-500" />}
                         {event.title || event.summary}
@@ -906,6 +925,7 @@ export function WeeklyCalendarView() {
                       <div
                         className="h-full rounded-md border-l-4 bg-background shadow-sm hover:shadow-md transition-all cursor-pointer p-1.5 overflow-hidden hover:scale-[1.02] hover:z-20 relative mx-0.5"
                         style={{ borderLeftColor: eventColor }}
+                        onClick={() => handleEventClick(event)}
                       >
                         <div className="text-xs font-medium line-clamp-2 mb-1 flex items-center gap-1">
                           {event.isManaged && <Zap className="w-3 h-3 text-blue-500 flex-shrink-0" />}
@@ -993,7 +1013,11 @@ export function WeeklyCalendarView() {
                   const eventColor = getEventColor(event)
                   
                   return (
-                    <div key={`today-${event.id}`} className="flex items-center gap-3 p-3 rounded-lg border bg-muted/20">
+                    <div
+                      key={`today-${event.id}`}
+                      className="flex items-center gap-3 p-3 rounded-lg border bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors"
+                      onClick={() => handleEventClick(event)}
+                    >
                       <div 
                         className="w-1 h-12 rounded-full flex-shrink-0"
                         style={{ backgroundColor: eventColor }}
@@ -1024,11 +1048,12 @@ export function WeeklyCalendarView() {
                       
                       {event.htmlLink && (
                         <Button variant="ghost" size="sm" asChild>
-                          <a 
-                            href={event.htmlLink} 
-                            target="_blank" 
+                          <a
+                            href={event.htmlLink}
+                            target="_blank"
                             rel="noopener noreferrer"
                             className="flex-shrink-0"
+                            onClick={(e) => e.stopPropagation()}
                           >
                             <ExternalLink className="w-4 h-4" />
                           </a>
@@ -1054,6 +1079,13 @@ export function WeeklyCalendarView() {
           onEventCreated={handleEventCreated}
         />
       )}
+
+      <EventEditDialog
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        event={selectedEvent}
+        onEventUpdated={handleEventUpdated}
+      />
     </div>
   )
 }
