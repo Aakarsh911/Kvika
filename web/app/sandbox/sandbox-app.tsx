@@ -154,7 +154,7 @@ function SandboxChrome({
               className="cf-app-nav-item w-full text-[rgba(var(--cf-accent-rgb),1)]"
             >
               <Zap className="h-5 w-5" strokeWidth={1.75} />
-              <span>Ask ChronoFlow</span>
+              <span>Ask Kvika</span>
             </button>
           </div>
         </div>
@@ -213,7 +213,7 @@ function SandboxChrome({
                 href="/waitlist"
                 className="hidden font-mono text-[11px] text-[var(--cf-text-muted)] hover:text-[var(--cf-text)] sm:inline"
               >
-                About ChronoFlow
+                About Kvika
               </Link>
               <button
                 type="button"

@@ -9,9 +9,9 @@ import { TrackPageView } from "@/app/waitlist/track-pageview"
 const themeBootScript = `(function(){try{if(localStorage.getItem('cf-theme')==='dark'){document.documentElement.setAttribute('data-cf-theme','dark');}}catch(e){}})();`
 
 export const metadata: Metadata = {
-  title: "Try ChronoFlow — Interactive Demo for Engineering Teams",
+  title: "Try Kvika — Interactive Demo for Engineering Teams",
   description:
-    "Explore ChronoFlow with sample data. See how calendar, email, tasks, and focus time work together — no signup required.",
+    "Explore Kvika with sample data. See how calendar, email, tasks, and focus time work together — no signup required.",
   alternates: { canonical: "/sandbox" },
   robots: { index: true, follow: true },
 }

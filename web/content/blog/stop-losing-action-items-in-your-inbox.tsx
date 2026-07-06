@@ -8,7 +8,7 @@ const post: BlogPost = {
     "Why engineers miss tasks hidden in email threads — and a practical system for turning messages into tracked work without living in your inbox.",
   date: "2025-05-20",
   tags: ["productivity", "email", "tasks", "software-engineers", "gmail"],
-  author: "ChronoFlow Team",
+  author: "Kvika Team",
   readTime: "6 min",
   sections: [
     { id: "why-inbox-fails", title: "Why your inbox is a bad task manager" },
@@ -98,7 +98,7 @@ const post: BlogPost = {
         fully autonomous or when it cannot link back to the original message.
       </P>
       <P>
-        That is the problem ChronoFlow is built around: Gmail and Outlook in one place, AI-suggested
+        That is the problem Kvika is built around: Gmail and Outlook in one place, AI-suggested
         tasks with source links, and a calendar that knows when you actually have time to do the work.
       </P>
 
@@ -119,7 +119,7 @@ const post: BlogPost = {
           scheduling when your team uses both Google and Microsoft
         </A>
         . Ready to try a unified inbox + tasks workspace?{" "}
-        <A href="/waitlist">Join the ChronoFlow beta</A>.
+        <A href="/waitlist">Join the Kvika beta</A>.
       </P>
     </article>
   ),

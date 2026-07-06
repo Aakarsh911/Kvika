@@ -1,7 +1,7 @@
 /**
  * Brand marks for the integration tiles. Each logo is a small inline SVG
  * sized via the parent. We keep the marks simple and recognizable — these
- * are used to identify the products ChronoFlow integrates with.
+ * are used to identify the products Kvika integrates with.
  *
  * `dim` is used for the "Coming soon" state — we render the same logo in
  * the dimmed text color so the tile clearly reads as not-yet-available.

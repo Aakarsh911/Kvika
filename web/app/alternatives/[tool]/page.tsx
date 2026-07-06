@@ -74,7 +74,7 @@ export default async function AlternativeToolPage({ params }: Props) {
         <div className="mx-auto flex max-w-4xl items-center justify-between px-5 py-4 sm:px-8">
           <Link href="/waitlist" className="flex items-center gap-2">
             <Logo />
-            <span className="font-mono text-sm font-semibold tracking-tight text-[var(--cf-text)]">chronoflow</span>
+            <span className="font-mono text-sm font-semibold tracking-tight text-[var(--cf-text)]">kvika</span>
           </Link>
           <nav className="flex items-center gap-5">
             <Link href="/blog" className="text-sm text-[var(--cf-text-muted)] hover:text-[var(--cf-text)] transition-colors">Blog</Link>
@@ -96,7 +96,7 @@ export default async function AlternativeToolPage({ params }: Props) {
 
         {/* H1 */}
         <h1 className="mb-4 text-2xl sm:text-3xl font-bold leading-tight tracking-tight text-[var(--cf-text)]">
-          ChronoFlow vs {alt.tool}:{" "}
+          Kvika vs {alt.tool}:{" "}
           <span className="text-[var(--cf-accent)]">{alt.tagline}</span>
         </h1>
 
@@ -112,7 +112,7 @@ export default async function AlternativeToolPage({ params }: Props) {
                 <tr className="border-b border-[var(--cf-border)] bg-[var(--cf-bg-soft)]">
                   <th className="px-4 py-3 text-left font-semibold text-[var(--cf-text-dim)]">Feature</th>
                   <th className="px-4 py-3 text-left font-semibold text-[var(--cf-text-dim)]">{alt.tool}</th>
-                  <th className="px-4 py-3 text-left font-semibold text-[var(--cf-accent)]">ChronoFlow</th>
+                  <th className="px-4 py-3 text-left font-semibold text-[var(--cf-accent)]">Kvika</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--cf-border)] bg-[var(--cf-bg-elev)]">
@@ -129,12 +129,12 @@ export default async function AlternativeToolPage({ params }: Props) {
                       )}
                     </td>
                     <td className="px-4 py-3 text-[var(--cf-text)]">
-                      {row.chronoflow === "Yes" || row.chronoflow.startsWith("Yes") ? (
+                      {row.kvika === "Yes" || row.kvika.startsWith("Yes") ? (
                         <span className="flex items-start gap-1 text-emerald-600 dark:text-emerald-400">
-                          <Check className="h-3.5 w-3.5 mt-0.5 shrink-0" /> {row.chronoflow}
+                          <Check className="h-3.5 w-3.5 mt-0.5 shrink-0" /> {row.kvika}
                         </span>
                       ) : (
-                        row.chronoflow
+                        row.kvika
                       )}
                     </td>
                   </tr>
@@ -157,11 +157,11 @@ export default async function AlternativeToolPage({ params }: Props) {
           </ul>
         </section>
 
-        {/* Where ChronoFlow is different */}
+        {/* Where Kvika is different */}
         <section className="mb-10">
-          <h2 className="mb-4 text-lg font-semibold text-[var(--cf-text)]">Where ChronoFlow is different</h2>
+          <h2 className="mb-4 text-lg font-semibold text-[var(--cf-text)]">Where Kvika is different</h2>
           <ul className="space-y-3">
-            {alt.chronoflowDifferent.map((point, i) => (
+            {alt.kvikaDifferent.map((point, i) => (
               <li key={i} className="flex items-start gap-3 text-sm leading-relaxed">
                 <span className="mt-1 h-4 w-4 rounded-full bg-[var(--cf-accent-soft)] flex items-center justify-center shrink-0">
                   <Check className="h-2.5 w-2.5 text-[var(--cf-accent)]" />
@@ -174,7 +174,7 @@ export default async function AlternativeToolPage({ params }: Props) {
 
         {/* Who should switch */}
         <section className="mb-12">
-          <h2 className="mb-4 text-lg font-semibold text-[var(--cf-text)]">Who should use ChronoFlow instead</h2>
+          <h2 className="mb-4 text-lg font-semibold text-[var(--cf-text)]">Who should use Kvika instead</h2>
           <ul className="space-y-2">
             {alt.whoShouldSwitch.map((point, i) => (
               <li key={i} className="flex items-start gap-3 text-[var(--cf-text-muted)] text-sm leading-relaxed">
@@ -188,7 +188,7 @@ export default async function AlternativeToolPage({ params }: Props) {
         {/* CTA */}
         <div className="rounded-xl border border-[var(--cf-border)] bg-[var(--cf-accent-soft)] px-6 py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-12">
           <div>
-            <p className="font-semibold text-[var(--cf-text)]">Try ChronoFlow free during the beta</p>
+            <p className="font-semibold text-[var(--cf-text)]">Try Kvika free during the beta</p>
             <p className="mt-1 text-sm text-[var(--cf-text-muted)]">
               Connect Google or Microsoft via OAuth. No credit card, no migration.
             </p>
@@ -227,7 +227,7 @@ export default async function AlternativeToolPage({ params }: Props) {
 
       <footer className="border-t border-[var(--cf-border)] bg-[var(--cf-bg)]">
         <div className="mx-auto flex max-w-4xl flex-col items-start justify-between gap-4 px-5 py-8 sm:flex-row sm:items-center sm:px-8">
-          <span className="font-mono text-xs text-[var(--cf-text-muted)]">chronoflow · © {new Date().getFullYear()}</span>
+          <span className="font-mono text-xs text-[var(--cf-text-muted)]">kvika · © {new Date().getFullYear()}</span>
           <nav className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-[var(--cf-text-muted)]">
             <Link href="/privacy" className="hover:text-[var(--cf-text)] transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-[var(--cf-text)] transition-colors">Terms</Link>

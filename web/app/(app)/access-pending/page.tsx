@@ -68,7 +68,7 @@ export default async function AccessPendingPage({
           href="/waitlist"
           className="font-mono text-sm font-semibold tracking-tight text-[var(--cf-text)] hover:text-[rgba(var(--cf-accent-rgb),1)] transition"
         >
-          ChronoFlow
+          Kvika
         </Link>
         <div className="flex items-center gap-2">
           <ThemeToggle />
@@ -88,9 +88,9 @@ export default async function AccessPendingPage({
         </h1>
 
         <p className="mt-4 max-w-xl text-balance text-center text-[15px] leading-relaxed text-[var(--cf-text-muted)] sm:text-base">
-          ChronoFlow is in private beta and we&apos;re rolling invites out by hand
+          Kvika is in private beta and we&apos;re rolling invites out by hand
           each week. We&apos;ll send your invite from{" "}
-          <span className="font-mono text-[var(--cf-text)]">team@chronoflow.app</span>
+          <span className="font-mono text-[var(--cf-text)]">team@kvika.app</span>
           {" "}as soon as a slot opens up.
         </p>
 

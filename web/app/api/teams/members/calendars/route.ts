@@ -161,7 +161,7 @@ export async function POST(req: NextRequest) {
             memberId,
             userName: memberName,
             userEmail: memberEmail,
-            error: 'This member has not connected their Microsoft account to ChronoFlow',
+            error: 'This member has not connected their Microsoft account to Kvika',
             events: [],
           })
           continue

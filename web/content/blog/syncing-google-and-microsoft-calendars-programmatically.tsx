@@ -8,7 +8,7 @@ const post: BlogPost = {
     "A practical guide to incremental calendar sync across Google and Microsoft — sync tokens, delta queries, and the normalization layer every unified calendar needs.",
   date: "2025-05-27",
   tags: ["calendar", "google-calendar", "microsoft-outlook", "productivity", "engineering"],
-  author: "ChronoFlow Team",
+  author: "Kvika Team",
   readTime: "7 min",
   sections: [
     { id: "problem", title: "Why one calendar view is hard" },
@@ -27,7 +27,7 @@ const post: BlogPost = {
         without hammering two different APIs all day.
       </P>
       <P>
-        At ChronoFlow, we pull Google Calendar and Microsoft Outlook into one workspace. The hard
+        At Kvika, we pull Google Calendar and Microsoft Outlook into one workspace. The hard
         part is not fetching events once — it is staying in sync incrementally, handling deletes,
         and making both providers look the same to everything downstream. This post explains the
         patterns we use, at the level of public API docs, not our internal implementation.
@@ -147,7 +147,7 @@ const changes = await calendar.events.list({
       </P>
 
       <P className="mt-10 border-t border-[var(--cf-border)] pt-8 text-[var(--cf-text-muted)]">
-        ChronoFlow ships a unified Google + Outlook calendar for engineering teams. Compare us to{" "}
+        Kvika ships a unified Google + Outlook calendar for engineering teams. Compare us to{" "}
         <A href="/alternatives/motion">Motion</A>, <A href="/alternatives/reclaim">Reclaim</A>, and{" "}
         <A href="/alternatives/clockwise">Clockwise</A>, or{" "}
         <A href="/waitlist">join the beta waitlist</A>.

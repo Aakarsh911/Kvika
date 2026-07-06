@@ -83,7 +83,7 @@ export function EventEditDialog({
     if (!event) return
 
     if (!event.isManaged) {
-      setError("This event cannot be rescheduled in ChronoFlow.")
+      setError("This event cannot be rescheduled in Kvika.")
       return
     }
 
@@ -182,7 +182,7 @@ export function EventEditDialog({
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="flex items-center gap-2 rounded-lg bg-muted/50 p-3 text-sm">
               <Zap className="h-4 w-4 text-blue-500" />
-              <span>ChronoFlow can move this event and sync the change to your calendar.</span>
+              <span>Kvika can move this event and sync the change to your calendar.</span>
             </div>
 
             <div className="space-y-2">

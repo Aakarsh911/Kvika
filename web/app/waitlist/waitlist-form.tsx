@@ -114,7 +114,7 @@ export function WaitlistForm({ variant = "hero", source, onJoined }: Props) {
             {alreadyOnList ? "You're already on the list." : "You're on the list."}
           </p>
           <p className="mt-0.5 text-[var(--cf-text-muted)]">
-            We&apos;ll reach out from <span className="font-mono">team@chronoflow.app</span> when your invite is ready.
+            We&apos;ll reach out from <span className="font-mono">team@kvika.app</span> when your invite is ready.
           </p>
         </div>
       </div>

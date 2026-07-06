@@ -15,7 +15,7 @@ export function AuthForm() {
     <div className="mx-auto w-full max-w-md">
       <div className="mb-8 flex items-center justify-center gap-2 lg:hidden">
         <AppLogo size="sm" />
-        <span className="font-mono text-sm font-semibold text-[var(--cf-text)]">chronoflow</span>
+        <span className="font-mono text-sm font-semibold text-[var(--cf-text)]">kvika</span>
       </div>
 
       <div className="cf-surface-card overflow-hidden border-[var(--cf-border-strong)] bg-[color-mix(in_srgb,var(--cf-bg-elev)_92%,transparent)] p-8 shadow-[0_24px_80px_-40px_rgba(var(--cf-primary-rgb),0.35)] backdrop-blur-sm sm:p-10">

@@ -19,7 +19,7 @@ export default function PrivacyPolicyPage() {
           <section>
             <h2 className="text-2xl font-bold text-slate-900 mb-4">Introduction</h2>
             <p className="text-slate-700 leading-relaxed">
-              ChronoFlow ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our productivity and email management application. Please read this privacy policy carefully. If you do not agree with the terms of this privacy policy, please do not access the application.
+              Kvika ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our productivity and email management application. Please read this privacy policy carefully. If you do not agree with the terms of this privacy policy, please do not access the application.
             </p>
           </section>
 
@@ -61,7 +61,7 @@ export default function PrivacyPolicyPage() {
             <h2 className="text-2xl font-bold text-slate-900 mb-4">🤖 Third-Party AI Processing</h2>
             <div className="space-y-4 text-slate-700">
               <p className="font-semibold">
-                ChronoFlow uses third-party artificial intelligence services to provide smart features. Your explicit consent is required before we process your data with AI.
+                Kvika uses third-party artificial intelligence services to provide smart features. Your explicit consent is required before we process your data with AI.
               </p>
               
               <div className="bg-white rounded p-4 space-y-3">
@@ -165,7 +165,7 @@ export default function PrivacyPolicyPage() {
               <li><strong>Disconnect Integrations:</strong> Remove access to Gmail, Outlook, Teams, or Jira at any time</li>
             </ul>
             <p className="text-slate-700 mt-4">
-              To exercise these rights, visit your Settings page or contact us at privacy@chronoflow.com
+              To exercise these rights, visit your Settings page or contact us at privacy@kvika.com
             </p>
           </section>
 
@@ -173,7 +173,7 @@ export default function PrivacyPolicyPage() {
           <section className="border-2 border-green-200 rounded-lg p-6 bg-green-50">
             <h2 className="text-2xl font-bold text-slate-900 mb-4">Google API Services User Data Policy Compliance</h2>
             <p className="text-slate-700 mb-4">
-              ChronoFlow's use and transfer of information received from Google APIs adheres to the{' '}
+              Kvika's use and transfer of information received from Google APIs adheres to the{' '}
               <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-semibold">
                 Google API Services User Data Policy
               </a>, including the Limited Use requirements.
@@ -193,7 +193,7 @@ export default function PrivacyPolicyPage() {
           {/* Third-Party Links */}
           <section>
             <h2 className="text-2xl font-bold text-slate-900 mb-4">Third-Party Services</h2>
-            <p className="text-slate-700 mb-4">ChronoFlow integrates with:</p>
+            <p className="text-slate-700 mb-4">Kvika integrates with:</p>
             <ul className="list-disc list-inside space-y-2 text-slate-700 ml-4">
               <li><strong>Google:</strong> Gmail, Google Calendar - <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Privacy Policy</a></li>
               <li><strong>Microsoft:</strong> Outlook, Microsoft Teams - <a href="https://privacy.microsoft.com/privacystatement" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Privacy Policy</a></li>
@@ -206,7 +206,7 @@ export default function PrivacyPolicyPage() {
           <section>
             <h2 className="text-2xl font-bold text-slate-900 mb-4">Children's Privacy</h2>
             <p className="text-slate-700">
-              ChronoFlow is not intended for use by children under 13 years of age. We do not knowingly collect personal information from children under 13. If you believe we have collected information from a child under 13, please contact us immediately.
+              Kvika is not intended for use by children under 13 years of age. We do not knowingly collect personal information from children under 13. If you believe we have collected information from a child under 13, please contact us immediately.
             </p>
           </section>
 
@@ -214,7 +214,7 @@ export default function PrivacyPolicyPage() {
           <section>
             <h2 className="text-2xl font-bold text-slate-900 mb-4">International Users</h2>
             <p className="text-slate-700">
-              ChronoFlow is operated from the United States. If you are accessing our service from outside the United States, please be aware that your information may be transferred to, stored, and processed in the United States. By using ChronoFlow, you consent to this transfer.
+              Kvika is operated from the United States. If you are accessing our service from outside the United States, please be aware that your information may be transferred to, stored, and processed in the United States. By using Kvika, you consent to this transfer.
             </p>
           </section>
 
@@ -237,7 +237,7 @@ export default function PrivacyPolicyPage() {
           <section>
             <h2 className="text-2xl font-bold text-slate-900 mb-4">Changes to This Privacy Policy</h2>
             <p className="text-slate-700">
-              We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last updated" date. Continued use of ChronoFlow after changes constitutes acceptance of the updated policy.
+              We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last updated" date. Continued use of Kvika after changes constitutes acceptance of the updated policy.
             </p>
           </section>
 
@@ -248,9 +248,9 @@ export default function PrivacyPolicyPage() {
               If you have questions about this Privacy Policy or our data practices, please contact us:
             </p>
             <div className="text-slate-700 space-y-2">
-              <p><strong>Email:</strong> privacy@chronoflow.com</p>
-              <p><strong>Support:</strong> support@chronoflow.com</p>
-              <p><strong>Data Protection Officer:</strong> dpo@chronoflow.com</p>
+              <p><strong>Email:</strong> privacy@kvika.com</p>
+              <p><strong>Support:</strong> support@kvika.com</p>
+              <p><strong>Data Protection Officer:</strong> dpo@kvika.com</p>
             </div>
           </section>
         </div>

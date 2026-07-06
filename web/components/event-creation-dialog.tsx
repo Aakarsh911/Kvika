@@ -203,7 +203,7 @@ export function EventCreationDialog({
                   Manageable Event
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  Allow ChronoFlow to reschedule this event
+                  Allow Kvika to reschedule this event
                 </p>
               </div>
             </div>

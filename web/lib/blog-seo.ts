@@ -5,13 +5,13 @@ export function blogPageMetadata(path = "/blog"): Metadata {
   const siteUrl = getSiteUrl()
 
   return {
-    title: "Blog — ChronoFlow",
+    title: "Blog — Kvika",
     description:
       "Practical guides for software engineers — unified calendar and email, AI task extraction, and scheduling across Google and Microsoft.",
     metadataBase: new URL(siteUrl),
     alternates: { canonical: path },
     keywords: [
-      "ChronoFlow blog",
+      "Kvika blog",
       "productivity for software engineers",
       "Google Calendar Outlook sync",
       "AI task extraction from email",
@@ -19,16 +19,16 @@ export function blogPageMetadata(path = "/blog"): Metadata {
       "unified inbox for developers",
     ],
     openGraph: {
-      title: "Blog — ChronoFlow",
+      title: "Blog — Kvika",
       description:
         "Practical guides for software engineers — calendar sync, inbox task extraction, and mixed-stack team scheduling.",
       type: "website",
       url: path,
-      siteName: "ChronoFlow",
+      siteName: "Kvika",
     },
     twitter: {
       card: "summary_large_image",
-      title: "Blog — ChronoFlow",
+      title: "Blog — Kvika",
       description:
         "Practical guides for software engineers — calendar sync, inbox task extraction, and mixed-stack team scheduling.",
     },
@@ -48,7 +48,7 @@ export function blogPostMetadata(post: {
   const url = `${siteUrl}/blog/${post.slug}`
 
   return {
-    title: `${post.title} — ChronoFlow Blog`,
+    title: `${post.title} — Kvika Blog`,
     description: post.description,
     metadataBase: new URL(siteUrl),
     alternates: { canonical: `/blog/${post.slug}` },
@@ -61,7 +61,7 @@ export function blogPostMetadata(post: {
       publishedTime: post.date,
       authors: [post.author],
       tags: post.tags,
-      siteName: "ChronoFlow",
+      siteName: "Kvika",
     },
     twitter: {
       card: "summary_large_image",

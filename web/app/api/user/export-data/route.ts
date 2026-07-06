@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse(JSON.stringify(exportData, null, 2), {
       headers: {
         'Content-Type': 'application/json',
-        'Content-Disposition': `attachment; filename="chronoflow-data-${user.id}.json"`,
+        'Content-Disposition': `attachment; filename="kvika-data-${user.id}.json"`,
       },
     })
   } catch (error) {

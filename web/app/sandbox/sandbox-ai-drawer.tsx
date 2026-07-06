@@ -48,7 +48,7 @@ export function SandboxAiDrawer({ open, onClose, onPrompt }: Props) {
         ...prev,
         {
           role: "assistant",
-          text: "Done — this is a demo response. In the real app, ChronoFlow would run actions across your email, calendar, and Jira with your confirmation.",
+          text: "Done — this is a demo response. In the real app, Kvika would run actions across your email, calendar, and Jira with your confirmation.",
           showTools: /jira|ticket|reply|email|draft/i.test(trimmed),
         },
       ])
@@ -71,7 +71,7 @@ export function SandboxAiDrawer({ open, onClose, onPrompt }: Props) {
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-[rgba(var(--cf-accent-rgb),1)]" />
             <span className="font-mono text-sm font-medium text-[var(--cf-text)]">
-              Ask ChronoFlow
+              Ask Kvika
             </span>
             <span className="rounded-full border border-[var(--cf-border)] px-2 py-0.5 font-mono text-[9px] uppercase text-[var(--cf-text-dim)]">
               demo

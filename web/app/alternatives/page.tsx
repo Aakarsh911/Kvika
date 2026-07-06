@@ -5,14 +5,14 @@ import { ArrowRight } from "lucide-react"
 import "@/app/waitlist/waitlist.css"
 
 export const metadata: Metadata = {
-  title: "ChronoFlow vs. Alternatives | Compare Productivity Tools for Engineering Teams",
+  title: "Kvika vs. Alternatives | Compare Productivity Tools for Engineering Teams",
   description:
-    "See how ChronoFlow compares to ClickUp, Motion, Reclaim, Clockwise, and Lindy. Unified calendar, email, and tasks built for engineering teams.",
+    "See how Kvika compares to ClickUp, Motion, Reclaim, Clockwise, and Lindy. Unified calendar, email, and tasks built for engineering teams.",
   alternates: { canonical: "/alternatives" },
   openGraph: {
-    title: "ChronoFlow vs. Alternatives | Compare Productivity Tools for Engineering Teams",
+    title: "Kvika vs. Alternatives | Compare Productivity Tools for Engineering Teams",
     description:
-      "See how ChronoFlow compares to ClickUp, Motion, Reclaim, Clockwise, and Lindy. Unified calendar, email, and tasks built for engineering teams.",
+      "See how Kvika compares to ClickUp, Motion, Reclaim, Clockwise, and Lindy. Unified calendar, email, and tasks built for engineering teams.",
     type: "website",
     url: "/alternatives",
   },
@@ -35,7 +35,7 @@ export default function AlternativesIndexPage() {
         <div className="mx-auto flex max-w-4xl items-center justify-between px-5 py-4 sm:px-8">
           <Link href="/waitlist" className="flex items-center gap-2">
             <Logo />
-            <span className="font-mono text-sm font-semibold tracking-tight text-[var(--cf-text)]">chronoflow</span>
+            <span className="font-mono text-sm font-semibold tracking-tight text-[var(--cf-text)]">kvika</span>
           </Link>
           <nav className="flex items-center gap-5">
             <Link href="/blog" className="text-sm text-[var(--cf-text-muted)] hover:text-[var(--cf-text)] transition-colors">Blog</Link>
@@ -50,10 +50,10 @@ export default function AlternativesIndexPage() {
       <main className="mx-auto max-w-4xl px-5 py-14 sm:px-8">
         <div className="mb-12">
           <h1 className="mb-3 text-3xl font-bold tracking-tight text-[var(--cf-text)]">
-            ChronoFlow vs. the alternatives
+            Kvika vs. the alternatives
           </h1>
           <p className="max-w-xl text-[var(--cf-text-muted)] leading-relaxed">
-            How does ChronoFlow compare to the tools you're already considering? We've put together honest, side-by-side comparisons for engineering teams.
+            How does Kvika compare to the tools you're already considering? We've put together honest, side-by-side comparisons for engineering teams.
           </p>
         </div>
 
@@ -66,7 +66,7 @@ export default function AlternativesIndexPage() {
             >
               <div className="mb-3 flex items-center justify-between">
                 <span className="text-xs font-mono text-[var(--cf-text-dim)] uppercase tracking-wide">
-                  ChronoFlow vs.
+                  Kvika vs.
                 </span>
                 <ArrowRight className="h-4 w-4 text-[var(--cf-text-dim)] group-hover:text-[var(--cf-accent)] transition-colors" />
               </div>
@@ -80,7 +80,7 @@ export default function AlternativesIndexPage() {
 
         <div className="mt-12 rounded-xl border border-[var(--cf-border)] bg-[var(--cf-accent-soft)] px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <p className="font-medium text-[var(--cf-text)]">Ready to try ChronoFlow?</p>
+            <p className="font-medium text-[var(--cf-text)]">Ready to try Kvika?</p>
             <p className="mt-0.5 text-sm text-[var(--cf-text-muted)]">
               Join the private beta — unified calendar, email, and tasks for engineering teams.
             </p>
@@ -96,7 +96,7 @@ export default function AlternativesIndexPage() {
 
       <footer className="border-t border-[var(--cf-border)] bg-[var(--cf-bg)]">
         <div className="mx-auto flex max-w-4xl flex-col items-start justify-between gap-4 px-5 py-8 sm:flex-row sm:items-center sm:px-8">
-          <span className="font-mono text-xs text-[var(--cf-text-muted)]">chronoflow · © {new Date().getFullYear()}</span>
+          <span className="font-mono text-xs text-[var(--cf-text-muted)]">kvika · © {new Date().getFullYear()}</span>
           <nav className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-[var(--cf-text-muted)]">
             <Link href="/privacy" className="hover:text-[var(--cf-text)] transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-[var(--cf-text)] transition-colors">Terms</Link>

@@ -25,10 +25,10 @@ export default async function BlogIndexPage() {
       {/* Nav */}
       <header className="border-b border-[var(--cf-border)] bg-[var(--cf-bg)]">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-5 py-4 sm:px-8">
-          <Link href="/waitlist" className="flex items-center gap-2" aria-label="ChronoFlow home">
+          <Link href="/waitlist" className="flex items-center gap-2" aria-label="Kvika home">
             <Logo />
             <span className="font-mono text-sm font-semibold tracking-tight text-[var(--cf-text)]">
-              chronoflow
+              kvika
             </span>
           </Link>
           <nav className="flex items-center gap-5">
@@ -69,7 +69,7 @@ export default async function BlogIndexPage() {
         {/* CTA */}
         <div className="mb-10 rounded-xl border border-[var(--cf-border)] bg-[var(--cf-accent-soft)] px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <p className="font-medium text-[var(--cf-text)]">ChronoFlow is in private beta</p>
+            <p className="font-medium text-[var(--cf-text)]">Kvika is in private beta</p>
             <p className="mt-0.5 text-sm text-[var(--cf-text-muted)]">
               Unified calendar, email, and tasks for engineering teams.
             </p>
@@ -130,7 +130,7 @@ export default async function BlogIndexPage() {
       <footer className="border-t border-[var(--cf-border)] bg-[var(--cf-bg)]">
         <div className="mx-auto flex max-w-4xl flex-col items-start justify-between gap-4 px-5 py-8 sm:flex-row sm:items-center sm:px-8">
           <span className="font-mono text-xs text-[var(--cf-text-muted)]">
-            chronoflow · © {new Date().getFullYear()}
+            kvika · © {new Date().getFullYear()}
           </span>
           <nav className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-[var(--cf-text-muted)]">
             <Link href="/privacy" className="hover:text-[var(--cf-text)] transition-colors">Privacy</Link>

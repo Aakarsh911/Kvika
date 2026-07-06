@@ -92,10 +92,10 @@ function SiteHeader() {
   return (
     <header className="relative z-10">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5 sm:px-8">
-        <Link href="/waitlist" className="flex items-center gap-2" aria-label="ChronoFlow home">
+        <Link href="/waitlist" className="flex items-center gap-2" aria-label="Kvika home">
           <Logo />
           <span className="font-mono text-sm font-semibold tracking-tight text-[var(--cf-text)]">
-            chronoflow
+            kvika
           </span>
           <span className="cf-chip-accent rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider">
             beta
@@ -143,7 +143,7 @@ function Hero() {
 
       <ScrollReveal delay={120}>
         <p className="mx-auto mt-6 max-w-2xl text-balance text-[17px] leading-relaxed text-[var(--cf-text-muted)] sm:text-lg">
-          ChronoFlow connects your inbox, calendar, and tickets for{" "}
+          Kvika connects your inbox, calendar, and tickets for{" "}
           <span className="text-[var(--cf-text)]">software engineers</span>.
           AI extracts action items with due dates. You see your whole day in one
           workspace — not five tabs.
@@ -262,7 +262,7 @@ function WorkflowExample() {
     {
       time: "9:02am",
       trigger: "Standup assigns you a Jira ticket.",
-      result: "It lands on your ChronoFlow task board with priority and a link back to the issue.",
+      result: "It lands on your Kvika task board with priority and a link back to the issue.",
     },
     {
       time: "11:14am",
@@ -287,7 +287,7 @@ function WorkflowExample() {
         <SectionHeading
           eyebrow="See the workflow"
           title="One Tuesday. Four tools. Zero dropped balls."
-          subtitle="This is the loop ChronoFlow is built around — work arrives scattered, action happens in one place."
+          subtitle="This is the loop Kvika is built around — work arrives scattered, action happens in one place."
         />
 
         <ol className="cf-workflow-list mt-12 space-y-0">
@@ -336,7 +336,7 @@ function HowItWorks() {
     {
       n: "03",
       title: "Plan and ship your day",
-      body: "One view for tasks, calendar, focus blocks, and team scheduling. Ask ChronoFlow to draft replies, create tickets, or find time with your team.",
+      body: "One view for tasks, calendar, focus blocks, and team scheduling. Ask Kvika to draft replies, create tickets, or find time with your team.",
       icon: <Layers className="h-4 w-4" />,
     },
   ]
@@ -347,7 +347,7 @@ function HowItWorks() {
         <SectionHeading
           eyebrow="How it works"
           title="Three steps. No new habits."
-          subtitle="Use the tools you already pay for. ChronoFlow is the workspace that ties them together."
+          subtitle="Use the tools you already pay for. Kvika is the workspace that ties them together."
         />
 
         <div className="relative mt-12 grid gap-5 md:grid-cols-3">
@@ -389,7 +389,7 @@ function Features() {
       eyebrow: "AI task extraction · the headline feature",
       title: "Stop hand-scanning your inbox for action items.",
       body:
-        "ChronoFlow reads your Gmail, Outlook, and Teams messages in batches and uses Gemini to pull out the things you actually have to do. Newsletters, marketing, and CI notifications get filtered out. Confidence scoring means only real action items make it through to your task board — with priority and due date inferred from the message itself.",
+        "Kvika reads your Gmail, Outlook, and Teams messages in batches and uses Gemini to pull out the things you actually have to do. Newsletters, marketing, and CI notifications get filtered out. Confidence scoring means only real action items make it through to your task board — with priority and due date inferred from the message itself.",
       bullets: [
         "Batched LLM calls — no rate-limit failures on a 200-email morning",
         "Filters out newsletters, promotions, GitHub notification noise",
@@ -400,10 +400,10 @@ function Features() {
       icon: <Sparkles className="h-4 w-4" />,
     },
     {
-      eyebrow: "Ask ChronoFlow",
+      eyebrow: "Ask Kvika",
       title: "Type what you need. It happens across your tools.",
       body:
-        "When clicking through the UI isn't the fastest way, just type. \"Draft a reply telling Sarah Thursday at 2 works.\" \"Create a P1 Jira ticket for the login timeout.\" \"What did I miss today?\" ChronoFlow runs the action in the right tool with the right context — pulling the email thread, the assignee, or the ticket history so you don't have to. Every write action confirms before it goes out.",
+        "When clicking through the UI isn't the fastest way, just type. \"Draft a reply telling Sarah Thursday at 2 works.\" \"Create a P1 Jira ticket for the login timeout.\" \"What did I miss today?\" Kvika runs the action in the right tool with the right context — pulling the email thread, the assignee, or the ticket history so you don't have to. Every write action confirms before it goes out.",
       bullets: [
         "Drafts email replies using the original thread for context",
         "Creates Jira tickets with priority and assignee inferred",
@@ -629,7 +629,7 @@ function Integrations() {
         <SectionHeading
           eyebrow="Integrations"
           title="Connect what you already use."
-          subtitle="Personal OAuth, scoped to what ChronoFlow needs. Your data goes directly from each provider — no middleman, no broker, no syncing through us."
+          subtitle="Personal OAuth, scoped to what Kvika needs. Your data goes directly from each provider — no middleman, no broker, no syncing through us."
         />
 
         <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -675,7 +675,7 @@ function Integrations() {
               <span className="font-semibold text-[var(--cf-text)]">
                 Your data, your stack.
               </span>{" "}
-              Tokens are stored encrypted, scoped to the read/write actions ChronoFlow
+              Tokens are stored encrypted, scoped to the read/write actions Kvika
               needs. A self-hosted deployment is on the roadmap for teams that need data
               to stay on their own infrastructure.
             </p>
@@ -740,7 +740,7 @@ function ServerIcon() {
 function FAQ() {
   const items: Array<{ q: string; a: string }> = [
     {
-      q: "What is ChronoFlow?",
+      q: "What is Kvika?",
       a: "A unified workspace for software engineers. It connects Gmail, Outlook, Microsoft Teams, Google Calendar, Outlook Calendar, and Jira — then uses AI to extract action items so tasks don't get lost between apps.",
     },
     {
@@ -761,7 +761,7 @@ function FAQ() {
     },
     {
       q: "When will I get access?",
-      a: "We're inviting waitlist members in weekly batches. Join with your work email — we'll reach out from team@chronoflow.app when your invite is ready.",
+      a: "We're inviting waitlist members in weekly batches. Join with your work email — we'll reach out from team@kvika.app when your invite is ready.",
     },
   ]
 
@@ -863,7 +863,7 @@ function SiteFooter() {
         <div className="flex items-center gap-2">
           <Logo />
           <span className="font-mono text-[12px] text-[var(--cf-text-muted)]">
-            chronoflow · © {new Date().getFullYear()}
+            kvika · © {new Date().getFullYear()}
           </span>
         </div>
         <nav aria-label="Footer" className="flex flex-wrap items-center gap-x-5 gap-y-2">

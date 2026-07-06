@@ -83,7 +83,7 @@ function GapBadge({ className = "" }: { className?: string }) {
     >
       <Zap className="h-3.5 w-3.5 text-[rgba(var(--cf-accent-rgb),1)]" />
       <span className="font-mono text-[12.5px] text-[var(--cf-text)]">
-        ChronoFlow lives in those gaps.
+        Kvika lives in those gaps.
       </span>
     </div>
   )
@@ -114,7 +114,7 @@ export function ProblemScroll() {
                 I kept missing tasks — not because I wasn&apos;t trying. A review request
                 would land in Teams, a deadline would hide in email, a ticket would get
                 assigned in Jira. Each lived in a different app, and nothing connected
-                them. I built ChronoFlow to fix that.
+                them. I built Kvika to fix that.
               </p>
             </blockquote>
           </ScrollReveal>

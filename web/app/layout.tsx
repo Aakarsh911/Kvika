@@ -7,7 +7,7 @@ import { Toaster } from "@/components/ui/toaster"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "ChronoFlow",
+  title: "Kvika",
   description:
     "Unified workspace for software engineers — calendar, inbox, tasks, and team scheduling in one place.",
   icons: {

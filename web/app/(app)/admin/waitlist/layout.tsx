@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import "@/app/waitlist/waitlist.css"
 
 export const metadata: Metadata = {
-  title: "Waitlist admin — ChronoFlow",
+  title: "Waitlist admin — Kvika",
   robots: { index: false, follow: false },
   icons: { icon: "/favicon.png" },
 }

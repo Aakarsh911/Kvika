@@ -19,7 +19,7 @@ export function buildAgentRuntimePrompt(params: {
   const selectedEmailContext = params.selectedEmail
     ? `
 
-Selected email in ChronoFlow UI:
+Selected email in Kvika UI:
 - emailId: ${params.selectedEmail.id}
 - provider: ${params.selectedEmail.provider}
 - subject: ${params.selectedEmail.subject}
@@ -39,6 +39,6 @@ Interpret natural dates and times in this time zone unless the user says otherwi
 
 Tool orchestration:
 - If the user asks for multiple actions in one message, call every required tool before your final reply.
-- Do not stop after the first tool — ChronoFlow renders each tool result as a separate draft card.
-- Pass people by name when the user only gave a name; ChronoFlow resolves names to email addresses.`
+- Do not stop after the first tool — Kvika renders each tool result as a separate draft card.
+- Pass people by name when the user only gave a name; Kvika resolves names to email addresses.`
 }

@@ -19,14 +19,14 @@ export default function TermsOfServicePage() {
           <section>
             <h2 className="text-2xl font-bold text-slate-900 mb-4">Agreement to Terms</h2>
             <p className="text-slate-700 leading-relaxed">
-              These Terms of Service ("Terms") govern your access to and use of ChronoFlow ("Service", "we", "our", or "us"), a productivity and email management application. By accessing or using ChronoFlow, you agree to be bound by these Terms. If you do not agree to these Terms, do not use the Service.
+              These Terms of Service ("Terms") govern your access to and use of Kvika ("Service", "we", "our", or "us"), a productivity and email management application. By accessing or using Kvika, you agree to be bound by these Terms. If you do not agree to these Terms, do not use the Service.
             </p>
           </section>
 
           {/* Service Description */}
           <section>
             <h2 className="text-2xl font-bold text-slate-900 mb-4">Service Description</h2>
-            <p className="text-slate-700 mb-4">ChronoFlow provides:</p>
+            <p className="text-slate-700 mb-4">Kvika provides:</p>
             <ul className="list-disc list-inside space-y-2 text-slate-700 ml-4">
               <li>Unified inbox for Gmail and Outlook email management</li>
               <li>Calendar integration with Google Calendar, Outlook, and Microsoft Teams</li>
@@ -45,7 +45,7 @@ export default function TermsOfServicePage() {
               <div>
                 <h3 className="font-semibold text-slate-800 mb-2">Registration Requirements:</h3>
                 <ul className="list-disc list-inside space-y-2 ml-4">
-                  <li>You must be at least 13 years old to use ChronoFlow</li>
+                  <li>You must be at least 13 years old to use Kvika</li>
                   <li>You must provide accurate and complete information</li>
                   <li>You must have a valid Google, Microsoft, or Atlassian account</li>
                   <li>One person or legal entity may maintain only one account</li>
@@ -69,7 +69,7 @@ export default function TermsOfServicePage() {
             <h2 className="text-2xl font-bold text-slate-900 mb-4">AI Services and Consent</h2>
             <div className="space-y-4 text-slate-700">
               <p>
-                ChronoFlow offers AI-powered features that process your email and calendar data using AWS Bedrock with OpenAI GPT.
+                Kvika offers AI-powered features that process your email and calendar data using AWS Bedrock with OpenAI GPT.
               </p>
               
               <div className="bg-green-50 p-3 rounded border border-green-200">
@@ -118,10 +118,10 @@ export default function TermsOfServicePage() {
             <h2 className="text-2xl font-bold text-slate-900 mb-4">Third-Party Integrations</h2>
             <div className="space-y-4 text-slate-700">
               <p>
-                ChronoFlow integrates with Google, Microsoft, and Atlassian services. By connecting these integrations:
+                Kvika integrates with Google, Microsoft, and Atlassian services. By connecting these integrations:
               </p>
               <ul className="list-disc list-inside space-y-2 ml-4">
-                <li>You grant ChronoFlow permission to access your data as specified in the OAuth consent</li>
+                <li>You grant Kvika permission to access your data as specified in the OAuth consent</li>
                 <li>You agree to the terms and privacy policies of these third-party services</li>
                 <li>We are not responsible for third-party service availability, changes, or termination</li>
                 <li>You can disconnect integrations at any time</li>
@@ -137,14 +137,14 @@ export default function TermsOfServicePage() {
               <div>
                 <h3 className="font-semibold text-slate-800 mb-2">Our Rights:</h3>
                 <p>
-                  ChronoFlow and its content, features, and functionality are owned by us and protected by copyright, trademark, and other intellectual property laws. You may not copy, modify, distribute, or create derivative works without our express permission.
+                  Kvika and its content, features, and functionality are owned by us and protected by copyright, trademark, and other intellectual property laws. You may not copy, modify, distribute, or create derivative works without our express permission.
                 </p>
               </div>
 
               <div>
                 <h3 className="font-semibold text-slate-800 mb-2">Your Rights:</h3>
                 <p>
-                  You retain all rights to your email, calendar, task, and other data. By using ChronoFlow, you grant us a limited license to access, process, and display your data solely to provide the Service.
+                  You retain all rights to your email, calendar, task, and other data. By using Kvika, you grant us a limited license to access, process, and display your data solely to provide the Service.
                 </p>
               </div>
             </div>
@@ -155,7 +155,7 @@ export default function TermsOfServicePage() {
             <h2 className="text-2xl font-bold text-slate-900 mb-4">Payment and Subscriptions</h2>
             <div className="space-y-4 text-slate-700">
               <p>
-                ChronoFlow may offer free and paid subscription plans in the future. Current terms:
+                Kvika may offer free and paid subscription plans in the future. Current terms:
               </p>
               <ul className="list-disc list-inside space-y-2 ml-4">
                 <li>All fees are in USD and non-refundable unless required by law</li>
@@ -192,7 +192,7 @@ export default function TermsOfServicePage() {
             <h2 className="text-2xl font-bold text-slate-900 mb-4">Limitation of Liability</h2>
             <div className="space-y-3 text-slate-700">
               <p className="font-semibold uppercase">
-                TO THE MAXIMUM EXTENT PERMITTED BY LAW, CHRONOFLOW SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS OR REVENUES, WHETHER INCURRED DIRECTLY OR INDIRECTLY, OR ANY LOSS OF DATA, USE, GOODWILL, OR OTHER INTANGIBLE LOSSES.
+                TO THE MAXIMUM EXTENT PERMITTED BY LAW, KVIKA SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS OR REVENUES, WHETHER INCURRED DIRECTLY OR INDIRECTLY, OR ANY LOSS OF DATA, USE, GOODWILL, OR OTHER INTANGIBLE LOSSES.
               </p>
               <p>
                 This includes damages resulting from:
@@ -214,7 +214,7 @@ export default function TermsOfServicePage() {
           <section>
             <h2 className="text-2xl font-bold text-slate-900 mb-4">Indemnification</h2>
             <p className="text-slate-700">
-              You agree to defend, indemnify, and hold harmless ChronoFlow and its employees, contractors, and affiliates from any claims, damages, losses, liabilities, and expenses (including legal fees) arising from:
+              You agree to defend, indemnify, and hold harmless Kvika and its employees, contractors, and affiliates from any claims, damages, losses, liabilities, and expenses (including legal fees) arising from:
             </p>
             <ul className="list-disc list-inside space-y-2 text-slate-700 ml-4 mt-4">
               <li>Your use or misuse of the Service</li>
@@ -280,7 +280,7 @@ export default function TermsOfServicePage() {
           <section>
             <h2 className="text-2xl font-bold text-slate-900 mb-4">Miscellaneous</h2>
             <ul className="list-disc list-inside space-y-2 text-slate-700 ml-4">
-              <li><strong>Entire Agreement:</strong> These Terms constitute the entire agreement between you and ChronoFlow</li>
+              <li><strong>Entire Agreement:</strong> These Terms constitute the entire agreement between you and Kvika</li>
               <li><strong>Severability:</strong> If any provision is found unenforceable, the remaining provisions remain in effect</li>
               <li><strong>Waiver:</strong> Failure to enforce any provision does not constitute a waiver</li>
               <li><strong>Assignment:</strong> You may not assign these Terms without our consent</li>
@@ -295,8 +295,8 @@ export default function TermsOfServicePage() {
               If you have questions about these Terms of Service, please contact us:
             </p>
             <div className="text-slate-700 space-y-2">
-              <p><strong>Email:</strong> legal@chronoflow.com</p>
-              <p><strong>Support:</strong> support@chronoflow.com</p>
+              <p><strong>Email:</strong> legal@kvika.com</p>
+              <p><strong>Support:</strong> support@kvika.com</p>
             </div>
           </section>
 
@@ -304,7 +304,7 @@ export default function TermsOfServicePage() {
           <section className="border-2 border-blue-200 rounded-lg p-6 bg-blue-50">
             <h2 className="text-2xl font-bold text-slate-900 mb-4">Acknowledgment</h2>
             <p className="text-slate-700">
-              BY USING CHRONOFLOW, YOU ACKNOWLEDGE THAT YOU HAVE READ THESE TERMS OF SERVICE, UNDERSTAND THEM, AND AGREE TO BE BOUND BY THEM. IF YOU DO NOT AGREE TO THESE TERMS, DO NOT USE THE SERVICE.
+              BY USING KVIKA, YOU ACKNOWLEDGE THAT YOU HAVE READ THESE TERMS OF SERVICE, UNDERSTAND THEM, AND AGREE TO BE BOUND BY THEM. IF YOU DO NOT AGREE TO THESE TERMS, DO NOT USE THE SERVICE.
             </p>
           </section>
         </div>

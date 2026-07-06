@@ -26,7 +26,7 @@ export default function LoginPage() {
             <AppLogo />
             <div>
               <p className="font-mono text-sm font-semibold tracking-tight text-[var(--cf-text)]">
-                chronoflow
+                kvika
               </p>
               <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--cf-text-muted)]">
                 Private beta

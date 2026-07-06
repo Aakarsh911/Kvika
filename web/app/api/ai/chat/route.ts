@@ -98,7 +98,7 @@ const tools = [
       properties: {
         to: {
           type: 'string',
-          description: 'Recipient name or email exactly as the user said it (e.g. "kinshuok", "john@example.com"). ChronoFlow resolves names automatically — do not ask for an email if the user only gave a name.',
+          description: 'Recipient name or email exactly as the user said it (e.g. "kinshuok", "john@example.com"). Kvika resolves names automatically — do not ask for an email if the user only gave a name.',
         },
         subject: {
           type: 'string',
@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Build system prompt with context
-    let systemPrompt = `You are an AI assistant for ChronoFlow, a productivity and email management application. You are conversational, helpful, and professional.
+    let systemPrompt = `You are an AI assistant for Kvika, a productivity and email management application. You are conversational, helpful, and professional.
 
 CORE CAPABILITIES:
 - Reply to emails, compose new emails, forward emails

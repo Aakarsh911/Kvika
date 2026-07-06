@@ -8,7 +8,7 @@ const post: BlogPost = {
     "Practical strategies for finding meeting times across Gmail Calendar and Outlook — without the back-and-forth email chains.",
   date: "2025-05-15",
   tags: ["team-scheduling", "google-calendar", "microsoft-outlook", "remote-teams", "productivity"],
-  author: "ChronoFlow Team",
+  author: "Kvika Team",
   readTime: "6 min",
   sections: [
     { id: "mixed-stacks", title: "Mixed stacks are the default now" },
@@ -99,7 +99,7 @@ const post: BlogPost = {
         problem, not a meeting problem.
       </P>
       <Callout type="tip">
-        ChronoFlow is built for this exact split: unified Google + Outlook calendar, team scheduling
+        Kvika is built for this exact split: unified Google + Outlook calendar, team scheduling
         with shared availability, and tasks that link back to the email thread that created the
         meeting prep.
       </Callout>

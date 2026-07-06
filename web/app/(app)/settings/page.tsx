@@ -285,7 +285,7 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground mb-4">
-            Permanently delete your ChronoFlow account and all associated data. This action cannot be undone.
+            Permanently delete your Kvika account and all associated data. This action cannot be undone.
           </p>
           <Button 
             variant="destructive" 

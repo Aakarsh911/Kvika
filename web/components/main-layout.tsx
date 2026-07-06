@@ -107,11 +107,11 @@ export function MainLayout({ children }: MainLayoutProps) {
             <Link
               href="/dashboard"
               className="flex h-[65px] flex-col items-center justify-center gap-1 border-b border-[var(--cf-border)] px-2"
-              aria-label="ChronoFlow home"
+              aria-label="Kvika home"
             >
               <AppLogo size="sm" />
               <span className="font-mono text-[9px] font-semibold tracking-tight text-[var(--cf-text-muted)]">
-                chronoflow
+                kvika
               </span>
             </Link>
 
@@ -156,13 +156,13 @@ export function MainLayout({ children }: MainLayoutProps) {
                     type="button"
                     className="cf-app-ai-btn"
                     onClick={() => setAiChatOpen(true)}
-                    aria-label="Ask ChronoFlow"
+                    aria-label="Ask Kvika"
                   >
                     <Zap className="h-5 w-5" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="right">
-                  <p>Ask ChronoFlow</p>
+                  <p>Ask Kvika</p>
                   <p className="text-xs text-muted-foreground">Cross-tool actions</p>
                 </TooltipContent>
               </Tooltip>

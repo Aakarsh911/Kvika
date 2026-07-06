@@ -2,9 +2,9 @@ import type { Metadata, Viewport } from "next"
 import "@/app/waitlist/waitlist.css"
 
 export const metadata: Metadata = {
-  title: "Access pending — ChronoFlow",
+  title: "Access pending — Kvika",
   description:
-    "ChronoFlow is in private beta. Access is invite-only while we roll out gradually.",
+    "Kvika is in private beta. Access is invite-only while we roll out gradually.",
   robots: { index: false, follow: false },
   icons: { icon: "/favicon.png" },
 }

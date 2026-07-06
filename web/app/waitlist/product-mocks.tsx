@@ -1,7 +1,7 @@
 /**
  * Stylized product mocks used on the waitlist landing page. These are not
  * real screenshots — they're hand-built UI fragments that match the look
- * and feel of the actual ChronoFlow dashboard. Replace with real product
+ * and feel of the actual Kvika dashboard. Replace with real product
  * captures when we have them.
  *
  * Every mock uses the cf-* design tokens so it adapts to light/dark theme
@@ -55,7 +55,7 @@ function MockChrome({
           />
         </div>
         <span className="font-mono text-[11px] text-[var(--cf-text-dim)]">
-          {label ?? "chronoflow"}
+          {label ?? "kvika"}
         </span>
         <div className="w-12" />
       </div>
@@ -121,7 +121,7 @@ function Badge({
 
 export function DashboardMock() {
   return (
-    <MockChrome label="dashboard · chronoflow">
+    <MockChrome label="dashboard · kvika">
       <div className="grid gap-3 p-3.5 sm:grid-cols-2 sm:p-4">
         {/* Today card */}
         <div className="rounded-lg border border-[var(--cf-border)] bg-[var(--cf-bg)] p-3.5">
@@ -1102,7 +1102,7 @@ export function AnalyticsMock() {
 
 export function AskMock() {
   return (
-    <MockChrome label="ask chronoflow">
+    <MockChrome label="ask kvika">
       <div className="flex flex-col gap-3 p-3.5 sm:p-4">
         {/* User prompt */}
         <div className="flex justify-end">

@@ -3,7 +3,7 @@ import type { Metadata } from "next"
 export const TAGLINE_LEAD = "Your calendar, email, and tasks"
 export const TAGLINE_ACCENT = "finally talk to each other."
 
-export const WAITLIST_TITLE = `ChronoFlow — ${TAGLINE_LEAD} ${TAGLINE_ACCENT}`
+export const WAITLIST_TITLE = `Kvika — ${TAGLINE_LEAD} ${TAGLINE_ACCENT}`
 
 export const WAITLIST_DESCRIPTION =
   "Unified workspace for software engineers. AI extracts action items from Gmail, Outlook, and Teams. Calendar, Jira, focus blocks, and team scheduling in one place. Free beta for waitlist members."
@@ -25,7 +25,7 @@ export function waitlistJsonLd(siteUrl: string) {
       {
         "@type": "Organization",
         "@id": `${siteUrl}/#organization`,
-        name: "ChronoFlow",
+        name: "Kvika",
         url: siteUrl,
         logo: {
           "@type": "ImageObject",
@@ -37,7 +37,7 @@ export function waitlistJsonLd(siteUrl: string) {
       {
         "@type": "WebSite",
         "@id": `${siteUrl}/#website`,
-        name: "ChronoFlow",
+        name: "Kvika",
         url: siteUrl,
         publisher: { "@id": `${siteUrl}/#organization` },
       },
@@ -50,7 +50,7 @@ export function waitlistJsonLd(siteUrl: string) {
         isPartOf: { "@id": `${siteUrl}/#website` },
         about: {
           "@type": "SoftwareApplication",
-          name: "ChronoFlow",
+          name: "Kvika",
           applicationCategory: "BusinessApplication",
           operatingSystem: "Web",
           description: WAITLIST_DESCRIPTION,
@@ -63,7 +63,7 @@ export function waitlistJsonLd(siteUrl: string) {
         },
         mainEntity: {
           "@type": "SoftwareApplication",
-          name: "ChronoFlow",
+          name: "Kvika",
           applicationCategory: "ProductivityApplication",
           description: WAITLIST_DESCRIPTION,
           featureList: [
@@ -71,7 +71,7 @@ export function waitlistJsonLd(siteUrl: string) {
             "Unified calendar across Google Calendar and Outlook",
             "Team scheduling with shared availability",
             "Focus time blocks and productivity analytics",
-            "Ask ChronoFlow chat drawer for cross-tool actions",
+            "Ask Kvika chat drawer for cross-tool actions",
             "Integrations with Slack, Gmail, Jira, GitHub, Google Calendar, and Outlook",
           ],
         },
@@ -86,7 +86,7 @@ export function waitlistLlmsTxt(siteUrl: string, blogPosts: { title: string; slu
       ? `\n## Blog\n${siteUrl}/blog\n${blogPosts.map((p) => `- ${p.title}: ${siteUrl}/blog/${p.slug}`).join("\n")}\n`
       : ""
 
-  return `# ChronoFlow
+  return `# Kvika
 
 > ${WAITLIST_DESCRIPTION}
 
@@ -95,17 +95,17 @@ ${siteUrl}/waitlist
 
 ## Interactive demo
 ${siteUrl}/sandbox
-Try ChronoFlow with sample data — no signup required.
+Try Kvika with sample data — no signup required.
 ${blogSection}
 ## Product summary
-ChronoFlow is a unified productivity workspace for software engineers. Work shows up in Slack, Gmail, Jira, and Calendar, but the action often needs to happen somewhere else — tasks fall through those gaps.
+Kvika is a unified productivity workspace for software engineers. Work shows up in Slack, Gmail, Jira, and Calendar, but the action often needs to happen somewhere else — tasks fall through those gaps.
 
 ## Key capabilities
 - AI reads your inbox and Teams messages and extracts action items with priority and due dates
 - Gmail and Outlook in one inbox; Google Calendar and Outlook in one calendar
 - Team scheduling without back-and-forth email chains
 - Focus blocks that survive daily reshuffles
-- Ask ChronoFlow: type what you need and run actions across email, Jira, and calendar
+- Ask Kvika: type what you need and run actions across email, Jira, and calendar
 - Integrations: Google, Microsoft, Jira, Slack, GitHub
 
 ## How it works
@@ -127,9 +127,9 @@ export function waitlistPageMetadata(siteUrl: string): Metadata {
     alternates: {
       canonical: "/waitlist",
     },
-    applicationName: "ChronoFlow",
+    applicationName: "Kvika",
     keywords: [
-      "ChronoFlow",
+      "Kvika",
       "productivity for software engineers",
       "AI task extraction from email",
       "Gmail Outlook task manager",
@@ -141,7 +141,7 @@ export function waitlistPageMetadata(siteUrl: string): Metadata {
     openGraph: {
       title: WAITLIST_TITLE,
       description: WAITLIST_DESCRIPTION,
-      siteName: "ChronoFlow",
+      siteName: "Kvika",
       type: "website",
       locale: "en_US",
       url: "/waitlist",

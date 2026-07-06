@@ -136,7 +136,7 @@ export default async function AdminWaitlistPage() {
               href="/waitlist"
               className="font-mono text-sm font-semibold text-[var(--cf-text)] hover:text-[rgba(var(--cf-accent-rgb),1)] transition"
             >
-              ChronoFlow
+              Kvika
             </Link>
             <span className="text-[var(--cf-text-dim)]">/</span>
             <span className="font-mono text-sm text-[var(--cf-text-muted)]">
