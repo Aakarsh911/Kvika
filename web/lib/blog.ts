@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import { postModules } from "@/lib/blog-registry"
 
 export interface BlogSection {
   id: string
@@ -15,16 +16,6 @@ export interface BlogPost {
   readTime: string    // e.g. "8 min"
   sections?: BlogSection[]
   content: () => ReactNode
-}
-
-// Registry of all posts — add new posts here
-const postModules: Record<string, () => Promise<{ default: BlogPost }>> = {
-  "syncing-google-and-microsoft-calendars-programmatically": () =>
-    import("@/content/blog/syncing-google-and-microsoft-calendars-programmatically"),
-  "stop-losing-action-items-in-your-inbox": () =>
-    import("@/content/blog/stop-losing-action-items-in-your-inbox"),
-  "scheduling-across-google-and-microsoft-teams": () =>
-    import("@/content/blog/scheduling-across-google-and-microsoft-teams"),
 }
 
 export async function getAllPosts(): Promise<Omit<BlogPost, "content">[]> {
